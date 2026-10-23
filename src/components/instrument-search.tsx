@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { BUSY_MESSAGE, getJson } from "@/lib/app/client";
 import type { SearchItem } from "@/lib/app/types";
 import { Icon3D, iconFor } from "./icon3d";
 
@@ -33,6 +34,7 @@ export function InstrumentSearch({ labelledBy, value, onSelect, errorId, invalid
   const typed = useRef(false);
   // Kata yang benar-benar diketik pengguna (bukan nama dari pilihan) — hanya ini yang dicari.
   const [term, setTerm] = useState("");
+  const [errorText, setErrorText] = useState("");
 
   // Pilihan dari luar (chip populer, tombol alternatif, URL) menimpa teks input.
   const [prevValue, setPrevValue] = useState(value);
@@ -49,14 +51,16 @@ export function InstrumentSearch({ labelledBy, value, onSelect, errorId, invalid
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(term)}`, { signal: ctrl.signal });
-        const data = (await res.json()) as { items?: SearchItem[] };
+        const data = await getJson<{ items?: SearchItem[] }>(`/api/search?q=${encodeURIComponent(term)}`, ctrl.signal);
         setItems(data.items ?? []);
         setActive(data.items?.length ? 0 : -1);
         setState("done");
         setOpen(true);
       } catch (e) {
-        if ((e as Error).name !== "AbortError") setState("error");
+        if ((e as Error).name !== "AbortError") {
+          setErrorText((e as Error).message === BUSY_MESSAGE ? BUSY_MESSAGE : "Gagal nyari. Cek koneksi, terus coba lagi ya.");
+          setState("error");
+        }
       }
     }, 220);
     return () => {
@@ -109,7 +113,7 @@ export function InstrumentSearch({ labelledBy, value, onSelect, errorId, invalid
   const showList = open && state !== "idle" && items.length > 0;
   const status =
     state === "loading" ? "Nyari dulu…"
-    : state === "error" ? "Gagal nyari. Cek koneksi, terus coba lagi ya."
+    : state === "error" ? errorText
     : state === "done" && items.length === 0 ? `“${query.trim()}” nggak ketemu. Coba kode saham (BBCA) atau nama (Bitcoin, emas).`
     : "";
   const srStatus = state === "done" && items.length ? `${items.length} hasil. Pilih pakai panah atas-bawah, lalu Enter.` : status;

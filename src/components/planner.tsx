@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { getJson } from "@/lib/app/client";
 import { formatAmountInput, formatTyping, parseAmount, rupiahWords } from "@/lib/app/format";
 import type { Alternatives, Mode, Projection, SearchItem } from "@/lib/app/types";
 import { AlternativesView } from "./alternatives-view";
@@ -68,10 +69,7 @@ export function Planner({ initial }: { initial: PlannerInitial }) {
     const qs = new URLSearchParams({ symbol: plan.symbol, years: String(plan.years), mode: plan.mode, stepUp: String(plan.stepUp) });
     (async () => {
       try {
-        const res = await fetch(`/api/projection?${qs}`, { signal: ctrl.signal });
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.error ?? "Lagi gagal ngitung.");
-        const data = body as Projection;
+        const data = await getJson<Projection>(`/api/projection?${qs}`, ctrl.signal);
         setProj({ state: "done", data });
         setSelected((s) => (s && s.symbol === data.instrument.symbol && s.name === s.symbol ? { ...s, name: data.instrument.name } : s));
         if (focusAfterLoad.current) {
@@ -88,9 +86,7 @@ export function Planner({ initial }: { initial: PlannerInitial }) {
         return;
       }
       try {
-        const res = await fetch(`/api/alternatives?${qs}`, { signal: ctrl.signal });
-        if (!res.ok) throw new Error();
-        setAlts({ state: "done", data: (await res.json()) as Alternatives });
+        setAlts({ state: "done", data: await getJson<Alternatives>(`/api/alternatives?${qs}`, ctrl.signal) });
       } catch (e) {
         if ((e as Error).name !== "AbortError") setAlts({ state: "error", data: null });
       }
