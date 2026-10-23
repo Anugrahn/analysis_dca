@@ -1,4 +1,4 @@
-// Set ikon 3D Coba-coba: semua dimodelkan dari bentuk bulat-lembut (rounded box, lathe, extrude
+// Set ikon 3D Cobain: semua dimodelkan dari bentuk bulat-lembut (rounded box, lathe, extrude
 // ber-bevel) dengan material "permen" mengilap. Satuan: satu ikon kira-kira selebar 2.
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";

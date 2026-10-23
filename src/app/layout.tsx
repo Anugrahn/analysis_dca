@@ -9,7 +9,7 @@ const bricolage = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-br
 const atkinson = Atkinson_Hyperlegible_Next({ subsets: ["latin"], variable: "--font-atkinson", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Coba-coba — nabung rutin, jadinya berapa?", template: "%s — Coba-coba" },
+  title: { default: "Cobain — nabung rutin, jadinya berapa?", template: "%s — Cobain" },
   description: "Coba hitung uang yang kamu tabung tiap bulan di saham, kripto, emas, atau reksa dana. Kita lempar dadu 4.000 kali buat lihat kemungkinannya.",
 };
 
@@ -34,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Link href="/" className="flex items-center gap-2.5 rounded-full pr-2 text-ink no-underline">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/3d/dadu.webp" alt="" width={40} height={40} className="-my-1" />
-            <span className="font-display text-[1.6rem] font-extrabold">Coba-coba</span>
+            <span className="font-display text-[1.6rem] font-extrabold">Cobain</span>
           </Link>
           <nav aria-label="Utama">
             <Link href="/metodologi" className="inline-flex min-h-11 items-center rounded-full bg-surface px-4 text-sm font-bold text-ink hover:bg-line">
@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <img src="/3d/dadu.webp" alt="" width={64} height={64} className="-rotate-12" />
               <div>
                 <p className="text-sm font-bold text-on-night-2">Diracik sambil iseng lempar dadu oleh</p>
-                <p className="font-display text-2xl font-extrabold leading-tight">Anugrah</p>
+                <p className="font-display text-2xl font-extrabold leading-tight">Uga</p>
               </div>
             </div>
             <ul className="mt-5 flex flex-wrap gap-2 sm:mt-0" aria-label="Kontak pembuat">

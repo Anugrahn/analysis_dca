@@ -1,4 +1,4 @@
-# Coba-coba (dca-lab)
+# Cobain (dca-lab)
 
 Simulator proyeksi DCA untuk saham Indonesia, saham global, kripto, emas, ETF, reksa dana, dan instrumen
 pasar uang. Pengguna mencari instrumen apa pun, mengisi setoran bulanan, lalu melihat 100 kemungkinan

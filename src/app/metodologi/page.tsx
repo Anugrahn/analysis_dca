@@ -4,7 +4,7 @@ import { Icon3D, type Icon3DName } from "@/components/icon3d";
 
 export const metadata: Metadata = {
   title: "Cara ngitungnya",
-  description: "Gimana Coba-coba ngitung masa depan uangmu: data, perkiraan, lempar dadu 4.000 kali, dan bukti ketepatannya.",
+  description: "Gimana Cobain ngitung masa depan uangmu: data, perkiraan, lempar dadu 4.000 kali, dan bukti ketepatannya.",
 };
 
 const STEPS: { icon: Icon3DName; title: string; text: string }[] = [

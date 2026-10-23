@@ -1,4 +1,6 @@
-# Coba-coba — Keputusan UX, aksesibilitas & standar
+# Cobain — Keputusan UX, aksesibilitas & standar
+
+Nama aplikasi: **Cobain** (sejak 23 Okt 2026; sebelumnya "Coba-coba", dan "Prakira" di v1).
 
 ## v2 (23 Okt 2026): Coba-coba
 
