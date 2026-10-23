@@ -1,0 +1,255 @@
+@import "tailwindcss";
+
+/* Coba-coba — "lempar dadu ribuan kali buat lihat masa depan uangmu".
+   Berani ala aplikasi bank modern: kartu besar, hero koral, biru malam, permen 3D.
+   Semua teks ≥ 4,5:1 (teks besar ≥ 3:1), garis kontrol ≥ 3:1. Warna hasil (rugi/untung/target)
+   lolos validator buta warna dan selalu dibarengi bentuk + label. */
+:root {
+  color-scheme: light;
+  --page: #eef1f8;
+  --surface: #ffffff;
+  --ink: #121a45;
+  --ink-2: #424a72;
+  --muted: #5e6690;
+  --line: #e1e5f0;
+  --line-strong: #8a92b2;
+
+  --night: #121a45;
+  --on-night: #ffffff;
+  --on-night-2: #c7cef0;
+  --night-raise: #1d2766;
+
+  --coral: #ff4436;
+  --coral-ink: #c42a1e;
+  --coral-soft: #ffe3e0;
+  --on-coral: #121a45;
+  --butter: #ffc83d;
+  --butter-soft: #fff3cf;
+  --mint: #2ed4a0;
+  --mint-soft: #d8f7ec;
+  --lilac: #9d8aff;
+  --lilac-soft: #ece8ff;
+  --sky: #4da3ff;
+  --sky-soft: #ddebff;
+
+  --loss: #d03b3b;
+  --loss-ink: #b42727;
+  --gain: #2a78d6;
+  --target: #1baf7a;
+  --warn-bg: #fff3cf;
+  --warn-ink: #6e4a00;
+
+  --band-outer: #dbe8fb;
+  --band-inner: #a9cbf5;
+  --median: #1c5cab;
+  --contrib: #424a72;
+  --grid: #e8ecf5;
+  --pick: #ff4436;
+  --selected: #121a45;
+  --on-selected: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0b1030;
+    --surface: #151c47;
+    --ink: #f3f5ff;
+    --ink-2: #c3c9ea;
+    --muted: #9aa2cc;
+    --line: #252e63;
+    --line-strong: #6872a8;
+
+    --night: #1b2560;
+    --on-night: #ffffff;
+    --on-night-2: #c7cef0;
+    --night-raise: #26317a;
+
+    --coral: #ff6a5e;
+    --coral-ink: #ff8f85;
+    --coral-soft: #3a1f3a;
+    --on-coral: #0b1030;
+    --butter-soft: #3a3320;
+    --mint-soft: #123b3a;
+    --lilac-soft: #2a2763;
+    --sky-soft: #172f66;
+
+    --loss: #e66767;
+    --loss-ink: #ff8a8a;
+    --gain: #3987e5;
+    --target: #199e70;
+    --warn-bg: #3a3320;
+    --warn-ink: #f3cf7a;
+
+    --band-outer: #1c2b62;
+    --band-inner: #2c4c99;
+    --median: #a9cbf5;
+    --contrib: #c3c9ea;
+    --grid: #222b5c;
+    --pick: #ff6a5e;
+    --selected: #ffc83d;
+    --on-selected: #0b1030;
+  }
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-night: var(--night);
+  --color-night-raise: var(--night-raise);
+  --color-on-night: var(--on-night);
+  --color-on-night-2: var(--on-night-2);
+  --color-coral: var(--coral);
+  --color-coral-ink: var(--coral-ink);
+  --color-coral-soft: var(--coral-soft);
+  --color-on-coral: var(--on-coral);
+  --color-butter: var(--butter);
+  --color-butter-soft: var(--butter-soft);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-lilac: var(--lilac);
+  --color-lilac-soft: var(--lilac-soft);
+  --color-sky: var(--sky);
+  --color-sky-soft: var(--sky-soft);
+  --color-loss: var(--loss);
+  --color-loss-ink: var(--loss-ink);
+  --color-gain: var(--gain);
+  --color-target: var(--target);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-ink: var(--warn-ink);
+  --color-selected: var(--selected);
+  --color-on-selected: var(--on-selected);
+  --font-sans: var(--font-atkinson), system-ui, sans-serif;
+  --font-display: var(--font-bricolage), var(--font-atkinson), system-ui, sans-serif;
+
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.55;
+  --text-lg: 1.3125rem;
+  --text-lg--line-height: 1.35;
+  --text-xl: 1.6875rem;
+  --text-xl--line-height: 1.2;
+  --text-2xl: 2.25rem;
+  --text-2xl--line-height: 1.08;
+  --text-3xl: 3rem;
+  --text-3xl--line-height: 1.02;
+  --text-4xl: 3.75rem;
+  --text-4xl--line-height: 0.98;
+
+  --radius-card: 28px;
+}
+
+html {
+  background: var(--page);
+  color: var(--ink);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.55;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-variation-settings: "opsz" 96;
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 3px solid var(--coral-ink);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+.on-dark :focus-visible,
+.on-coral :focus-visible {
+  outline-color: var(--ink);
+}
+.on-dark :focus-visible {
+  outline-color: var(--butter);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Slider setoran: jempol besar (≥ 28px) supaya gampang digeser di HP. */
+input[type="range"].slider {
+  appearance: none;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--butter) var(--fill, 50%), var(--night-raise) var(--fill, 50%));
+}
+input[type="range"].slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--butter);
+  border: 4px solid var(--night);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.35);
+}
+input[type="range"].slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--butter);
+  border: 4px solid var(--night);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .dim-transition {
+    transition: opacity 160ms ease-out;
+  }
+  .pop-in {
+    animation: pop 260ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  }
+  .roll {
+    animation: roll 700ms cubic-bezier(0.3, 0.7, 0.3, 1);
+  }
+  .draw-path {
+    stroke-dasharray: var(--len);
+    stroke-dashoffset: var(--len);
+    animation: draw 900ms ease-out forwards;
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.94);
+    opacity: 0.4;
+  }
+}
+@keyframes roll {
+  0% {
+    transform: rotate(0) translateY(0);
+  }
+  40% {
+    transform: rotate(-200deg) translateY(-10px);
+  }
+  100% {
+    transform: rotate(-360deg) translateY(0);
+  }
+}
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (forced-colors: active) {
+  .dot-loss {
+    fill: none;
+    stroke: CanvasText;
+  }
+}

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <title>Lembar ikon Coba-coba</title>
+  <script type="importmap">
+    { "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }
+  </script>
+  <style>
+    body { font: 13px system-ui; margin: 24px; display: grid; gap: 24px; }
+    .row { display: flex; flex-wrap: wrap; gap: 12px; padding: 20px; border-radius: 20px; }
+    .light { background: #f2f4fb; } .dark { background: #121a45; color: #fff; }
+    figure { margin: 0; text-align: center; } img { width: 96px; height: 96px; display: block; }
+    img.wide { width: 240px; height: 150px; }
+  </style>
+</head>
+<body>
+  <div class="row light" id="a"></div>
+  <div class="row dark" id="b"></div>
+  <script type="module">
+    import { ICONS } from "./icons.js";
+    for (const id of ["a", "b"]) for (const [name, def] of Object.entries(ICONS)) {
+      const f = document.createElement("figure");
+      f.innerHTML = `<img class="${def.size ? "wide" : ""}" src="/public/3d/${name}.webp?${Date.now()}"><figcaption>${name}</figcaption>`;
+      document.getElementById(id).append(f);
+    }
+  </script>
+</body>
+</html>

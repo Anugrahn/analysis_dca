@@ -1,0 +1,8 @@
+node_modules
+.DS_Store
+.next
+next-env.d.ts
+*.tsbuildinfo
+.vercel
+.playwright-mcp
+.env*
