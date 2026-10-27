@@ -52,37 +52,45 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <img src="/3d/dadu.webp" alt="" width={64} height={64} className="-rotate-12" />
               <div>
                 <p className="text-sm font-bold text-on-night-2">Diracik sambil iseng lempar dadu oleh</p>
-                <p className="font-display text-2xl font-extrabold leading-tight">Uga</p>
+                <p className="font-display text-2xl font-extrabold leading-tight">
+                  Rio <span className="text-butter">ft</span> Uga
+                </p>
               </div>
             </div>
             <ul className="mt-5 flex flex-wrap gap-2 sm:mt-0" aria-label="Kontak pembuat">
-              <li>
-                <a
-                  href="https://www.linkedin.com/in/anugrahn/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-12 items-center gap-2 rounded-full bg-butter px-5 font-bold text-night hover:brightness-105"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      fill="currentColor"
-                      d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9.75h4v11H3v-11Zm6.5 0h3.8v1.5h.06c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.77 2.65 4.77 6.1v5.45h-4v-4.83c0-1.15-.02-2.64-1.6-2.64-1.62 0-1.86 1.26-1.86 2.56v4.91h-4v-11Z"
-                    />
-                  </svg>
-                  LinkedIn
-                  <span className="sr-only">(buka di tab baru)</span>
-                </a>
-              </li>
+              {[
+                { name: "Rio", href: "https://www.linkedin.com/in/rionurarifin/", full: "Rio Nur Arifin" },
+                { name: "Uga", href: "https://www.linkedin.com/in/anugrahn/", full: "Uga" },
+              ].map((a) => (
+                <li key={a.name}>
+                  <a
+                    href={a.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`LinkedIn ${a.full} (buka di tab baru)`}
+                    className="inline-flex min-h-12 items-center gap-2 rounded-full bg-butter px-5 font-bold text-night hover:brightness-105"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        fill="currentColor"
+                        d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9.75h4v11H3v-11Zm6.5 0h3.8v1.5h.06c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.77 2.65 4.77 6.1v5.45h-4v-4.83c0-1.15-.02-2.64-1.6-2.64-1.62 0-1.86 1.26-1.86 2.56v4.91h-4v-11Z"
+                      />
+                    </svg>
+                    {a.name}
+                  </a>
+                </li>
+              ))}
               <li>
                 <a
                   href="mailto:anugrahnrhmd@gmail.com"
+                  aria-label="Email Uga: anugrahnrhmd@gmail.com"
                   className="inline-flex min-h-12 items-center gap-2 rounded-full bg-night-raise px-5 font-bold text-on-night hover:brightness-110"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                     <rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="currentColor" strokeWidth="2" />
                     <path d="m4 7 8 6 8-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  anugrahnrhmd@gmail.com
+                  Email
                 </a>
               </li>
             </ul>
