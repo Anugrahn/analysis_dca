@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useId, useState } from "react";
+import { Fragment, useId, useState, type ReactNode } from "react";
 import { decimal, monthLabel, percent } from "@/lib/app/format";
 import type { Projection, Rapor } from "@/lib/app/types";
 import { stabilityBand } from "@/lib/sim/risk";
@@ -10,10 +10,17 @@ import { Icon3D } from "./icon3d";
 interface Row {
   label: string;
   more: string;
-  value: (r: Rapor) => string;
+  value: (r: Rapor) => ReactNode;
 }
 
-const n100 = (x: number) => `${Math.round(x * 100)} dari 100`;
+/** Satuan turun ke baris kedua di ponsel supaya kolom angka ramping dan label punya ruang. */
+const withUnit = (n: string, unit: string) => (
+  <>
+    {n}
+    <span className="block whitespace-nowrap text-xs text-ink-2 sm:inline sm:text-sm sm:text-ink"> {unit}</span>
+  </>
+);
+const n100 = (x: number) => withUnit(String(Math.round(x * 100)), "dari 100");
 /** Rasio per gejolak tidak bermakna untuk instrumen yang hampir tidak naik-turun. */
 const ratio = (x: number | null, r: Rapor) => (x === null || r.risk.vol < 0.02 ? "—" : decimal(x));
 
@@ -44,7 +51,7 @@ const GROUPS: { title: string; rows: Row[] }[] = [
       {
         label: "Jarak hasil bagus–jelek",
         more: "Separuh hasil yang di tengah tersebar selebar ini (poin persen tumbuh per tahun). Makin sempit, makin bisa ditebak.",
-        value: (r) => `${decimal(r.iqrGrowth * 100, 1)} poin`,
+        value: (r) => withUnit(decimal(r.iqrGrowth * 100, 1), "poin"),
       },
     ],
   },
@@ -59,7 +66,7 @@ const GROUPS: { title: string; rows: Row[] }[] = [
       {
         label: "Paling lama nunggu pulih",
         more: "Dari puncak, jatuh, sampai tembus puncak lagi. Diambil yang paling lama.",
-        value: (r) => `${Math.round(r.risk.recovery)} bulan`,
+        value: (r) => withUnit(String(Math.round(r.risk.recovery)), "bulan"),
       },
       {
         label: "Bulan di bawah puncak",
@@ -200,7 +207,8 @@ export function RiskReport({ data }: { data: Projection }) {
               {cols.map((c) => (
                 <th key={c.key} scope="col" className="px-2 py-3 sm:px-3 text-right font-bold">
                   {c.label}
-                  <span className="block text-xs font-normal text-muted">{c.sub}</span>
+                  {/* Di ponsel keterangan ini sudah ada di kartu skor di atas tabel. */}
+                  <span className="hidden text-xs font-normal text-muted sm:block">{c.sub}</span>
                 </th>
               ))}
             </tr>
@@ -214,17 +222,27 @@ export function RiskReport({ data }: { data: Projection }) {
                   </th>
                 </tr>
                 {g.rows.map((row) => (
-                  <tr key={row.label} className="border-b border-line align-top">
-                    <th scope="row" className="px-2 py-2.5 sm:px-3 text-left font-bold text-ink">
-                      {row.label}
-                      {explain && <span className="mt-0.5 block max-w-[34ch] text-xs font-normal text-ink-2">{row.more}</span>}
-                    </th>
-                    {cols.map((c) => (
-                      <td key={c.key} className="whitespace-nowrap px-2 py-2.5 sm:px-3 text-right text-ink">
-                        {row.value(c.r)}
-                      </td>
-                    ))}
-                  </tr>
+                  <Fragment key={row.label}>
+                    <tr className={`border-b border-line align-top ${explain ? "max-sm:border-b-0" : ""}`}>
+                      <th scope="row" className="px-2 py-2.5 sm:px-3 text-left font-bold text-ink">
+                        {row.label}
+                        {explain && <span className="mt-0.5 hidden max-w-[34ch] text-xs font-normal text-ink-2 sm:block">{row.more}</span>}
+                      </th>
+                      {cols.map((c) => (
+                        <td key={c.key} className="px-2 py-2.5 sm:px-3 sm:whitespace-nowrap text-right text-ink">
+                          {row.value(c.r)}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Ponsel: penjelasan dapat baris sendiri selebar tabel, bukan diperas di kolom pertama. */}
+                    {explain && (
+                      <tr className="border-b border-line sm:hidden">
+                        <td colSpan={cols.length + 1} className="px-2 pb-2.5 text-xs text-ink-2">
+                          {row.more}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 ))}
               </Fragment>
             ))}
@@ -260,10 +278,10 @@ function ScoreCard({ label, sub, score }: { label: string; sub: string; score: n
         Skor stabilitas · {label}
         <span className="block text-xs font-normal text-muted">{sub}</span>
       </p>
-      <p className="mt-1 flex items-baseline gap-2">
+      <p className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
         <span className="font-display text-4xl font-extrabold text-ink">{score}</span>
-        <span className="text-ink-2">dari 100</span>
-        <span className="ml-auto rounded-full bg-surface px-3 py-1 text-sm font-bold text-ink">{band}</span>
+        <span className="whitespace-nowrap text-ink-2">dari 100</span>
+        <span className="ml-auto whitespace-nowrap rounded-full bg-surface px-3 py-1 text-sm font-bold text-ink">{band}</span>
       </p>
       <div aria-hidden="true" className="relative mt-3 h-2.5 rounded-full bg-line">
         <span className={`absolute inset-y-0 left-0 rounded-full ${BAND_TONE[band]}`} style={{ width: `${score}%` }} />

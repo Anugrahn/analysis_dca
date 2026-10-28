@@ -7,10 +7,13 @@ Nama aplikasi: **Cobain** (sejak 23 Okt 2026; sebelumnya "Coba-coba", dan "Praki
 Permintaan: semua logika & mode disamakan dengan seandainya, lalu ditingkatkan kalau bisa. Rinciannya di [benchmark seandainya](../riset/03-benchmark-seandainya.md#penyelarasan-28-okt-2026).
 
 - **Form:** chip 7 tahun (durasi seandainya 3/5/7/10), dan pilihan opsional "Dividennya mau diapain?" (beli lagi / ambil tunai). Ikut tersimpan di URL (`dividen=tunai`).
-- **Rapor risiko:** skor stabilitas masa lalu vs ke depan (meter + pita 75/55/35), lalu tabel 15 metrik dalam 3 kelompok ("Seberapa sering berhasil?", "Seberapa sakit jatuhnya?", "Sepadan sama deg-degannya?"). Nama metrik dalam bahasa sehari-hari; istilah teknis (Sharpe, VaR, dst.) hanya di `/metodologi#rapor`. Tombol "Jelasin tiap baris" (`aria-pressed`) membuka penjelasan per baris. Di 390 px kedua kolom muat tanpa digeser.
+- **Rapor risiko:** skor stabilitas masa lalu vs ke depan (meter + pita 75/55/35), lalu tabel 15 metrik dalam 3 kelompok ("Seberapa sering berhasil?", "Seberapa sakit jatuhnya?", "Sepadan sama deg-degannya?"). Nama metrik dalam bahasa sehari-hari; istilah teknis (Sharpe, VaR, dst.) hanya di `/metodologi#rapor`. Tombol "Jelasin tiap baris" (`aria-pressed`) membuka penjelasan per baris.
 - **Kalau dulu mulai…:** tiga cara lihat seperti seandainya: "10 tahun berbeda" (bulan kalender sama), "Satu tanggal" (select per tahun), "Semua bulan" (peta panas tahun × bulan; tiap kotak tombol berlabel lengkap, warna bukan satu-satunya penanda karena angkanya tertulis). Kontrol tersegmen 3 kolom di mobile.
 - **Ambang konsistensi** sejarah muncul sebagai momen penting di tabel "Tahun demi tahun".
 - **Uji 28 Okt 2026:** axe-core bersih di desktop, 390 px, dan mode gelap; tanpa geser horizontal halaman.
+- **Responsif semua perangkat:** dicek di 14 ukuran, dari ponsel 320 px sampai monitor 2560 px, termasuk ponsel dan tablet posisi tidur (667×375, 844×390, 1024×768). Hasilnya: halaman tidak pernah perlu digeser ke samping, tidak ada teks yang terpotong, dan tidak ada target sentuh di bawah 24 px. Tabel lebar ("Tahun demi tahun", "Kalau dulu mulai…", peta panas) tetap digeser di dalam wadahnya sendiri dengan kolom pertama yang menempel.
+  - Di bawah 640 px, penjelasan tiap baris Rapor risiko pindah ke baris sendiri selebar tabel. Satuan ("dari 100", "bulan", "poin") turun ke bawah angkanya, sehingga tabel muat tanpa digeser bahkan di 320 px.
+  - Di bawah 360 px, padding dan ukuran angka di kartu apes/hoki dan tombol tersegmen dikecilkan, dan header tetap satu baris.
 
 ## v3 (28 Okt 2026): tabel "Tahun demi tahun"
 

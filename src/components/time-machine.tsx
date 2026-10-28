@@ -80,7 +80,7 @@ export function TimeMachine({ data, amount }: Props) {
           {VIEWS.map((v) => (
             <label
               key={v.key}
-              className={`inline-flex min-h-11 cursor-pointer items-center justify-center rounded-[20px] px-3 py-1 text-center text-sm font-bold leading-tight sm:px-4 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-coral-ink ${
+              className={`inline-flex min-h-11 cursor-pointer items-center justify-center rounded-[20px] px-1.5 py-1 text-center text-sm font-bold leading-tight min-[360px]:px-3 sm:px-4 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-coral-ink ${
                 view === v.key ? "bg-selected text-on-selected" : "text-ink hover:bg-line"
               }`}
             >
@@ -226,7 +226,11 @@ function TenYears({
                   return (
                     <tr key={r.start} className="border-b border-line">
                       <th scope="row" className="sticky left-0 z-10 bg-surface px-3 py-2.5 text-left font-bold text-ink">
-                        <button type="button" onClick={() => onPick(r.start)} className="text-left underline decoration-dotted underline-offset-4">
+                        <button
+                          type="button"
+                          onClick={() => onPick(r.start)}
+                          className="inline-flex min-h-6 items-center text-left underline decoration-dotted underline-offset-4"
+                        >
                           {monthLabel(r.start)}
                         </button>
                         <span className="block text-xs font-normal text-muted">s.d. {monthLabel(endOf(r))}</span>

@@ -66,7 +66,7 @@ export function ResultView({ data, amount, onAmount, goal, mode, onMode, busy, h
             {MODE_OPTIONS.map((m) => (
               <label
                 key={m.value}
-                className={`relative inline-flex min-h-11 cursor-pointer items-center rounded-full px-4 text-sm font-bold has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-coral-ink ${
+                className={`relative inline-flex min-h-11 cursor-pointer items-center whitespace-nowrap rounded-full px-3 text-sm font-bold min-[360px]:px-4 has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-coral-ink ${
                   mode === m.value ? "bg-selected text-on-selected" : "text-ink hover:bg-page"
                 }`}
               >
@@ -80,7 +80,7 @@ export function ResultView({ data, amount, onAmount, goal, mode, onMode, busy, h
       </div>
 
       {/* Hasil utama */}
-      <section aria-labelledby="hasil-judul" className="on-dark relative overflow-hidden rounded-[var(--radius-card)] bg-night p-6 text-on-night sm:p-9">
+      <section aria-labelledby="hasil-judul" className="on-dark relative overflow-hidden rounded-[var(--radius-card)] bg-night p-5 text-on-night min-[360px]:p-6 sm:p-9">
         <Icon3D name="dadu-trio" size={120} className="absolute -right-6 -top-3 hidden opacity-95 sm:block" />
         <h2 ref={headingRef} tabIndex={-1} id="hasil-judul" className="outline-none">
           <span className="block text-lg font-bold text-on-night-2">Kemungkinan besar jadi</span>
@@ -103,17 +103,17 @@ export function ResultView({ data, amount, onAmount, goal, mode, onMode, busy, h
         ) : null}
 
         <dl className="mt-6 grid grid-cols-2 gap-3">
-          <div className="rounded-[20px] bg-night-raise p-4">
-            <dt className="flex items-center gap-2 text-sm font-bold text-on-night-2">
+          <div className="rounded-[20px] bg-night-raise p-3 min-[360px]:p-4">
+            <dt className="flex items-center gap-1.5 text-sm font-bold text-on-night-2 min-[360px]:gap-2">
               <Icon3D name="awan" size={28} /> Kalau lagi apes
             </dt>
-            <dd className="mt-1 font-display text-xl font-extrabold">{rupiahWords(o.final.p5 * k)}</dd>
+            <dd className="mt-1 font-display text-lg font-extrabold min-[360px]:text-xl">{rupiahWords(o.final.p5 * k)}</dd>
           </div>
-          <div className="rounded-[20px] bg-night-raise p-4">
-            <dt className="flex items-center gap-2 text-sm font-bold text-on-night-2">
+          <div className="rounded-[20px] bg-night-raise p-3 min-[360px]:p-4">
+            <dt className="flex items-center gap-1.5 text-sm font-bold text-on-night-2 min-[360px]:gap-2">
               <Icon3D name="tunas" size={28} /> Kalau lagi hoki
             </dt>
-            <dd className="mt-1 font-display text-xl font-extrabold">{rupiahWords(o.final.p95 * k)}</dd>
+            <dd className="mt-1 font-display text-lg font-extrabold min-[360px]:text-xl">{rupiahWords(o.final.p95 * k)}</dd>
           </div>
         </dl>
         <p className="mt-2 text-sm text-on-night-2">Apes = 5 dari 100 masa depan terburuk. Hoki = 5 dari 100 terbaik.</p>
