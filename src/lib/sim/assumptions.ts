@@ -10,7 +10,7 @@
 // - "dasar": bentuk distribusi dari sejarah, tetapi titik tengahnya digeser ke CMA di bawah.
 // - "konservatif": sama, dengan CMA yang dipangkas.
 //
-// Sumber pembanding (lihat docs/RESEARCH.md): Vanguard VCMM Jan 2026 (saham AS 3,9–5,9%/thn
+// Sumber pembanding (lihat docs/riset/01-riset-awal-dan-desain-model.md): Vanguard VCMM Jan 2026 (saham AS 3,9–5,9%/thn
 // 10 thn), J.P. Morgan LTCMA 2026 (60/40 USD 6,4%), building-block saham IDX
 // (dividend yield ~3% + pertumbuhan laba nominal ~6%). Angka kripto bukan estimasi
 // fundamental — tidak ada jangkar valuasi — melainkan asumsi skenario yang sengaja moderat.

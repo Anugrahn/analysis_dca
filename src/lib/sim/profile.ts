@@ -1,6 +1,6 @@
 // Rekomendasi alokasi berbasis profil — DRAFT, angka bobot untuk didiskusikan.
 //
-// Prinsip (lihat docs/RESEARCH.md §4):
+// Prinsip (lihat docs/riset/01-riset-awal-dan-desain-model.md §4):
 // - Yang menentukan hasil jangka panjang terutama alokasi antar kelas aset, biaya, dan disiplin,
 //   bukan memilih saham/koin. Jadi rekomendasi = komposisi kelas aset, bukan sinyal beli.
 // - Uang yang dipakai < 3 tahun lagi tidak ditaruh di aset yang bisa turun 30–70%.

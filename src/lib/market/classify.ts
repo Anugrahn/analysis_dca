@@ -1,7 +1,7 @@
 // Aturan asumsi untuk instrumen apa pun: jenis, biaya & pajak, ekspektasi return ke depan,
 // beserta alasan dalam bahasa sederhana. Setiap angka di sini harus bisa dijelaskan ke pengguna.
 //
-// Prinsip (docs/MODEL-RESEARCH.md):
+// Prinsip (docs/riset/02-riset-model-dan-pandangan-investasi.md):
 // - Ekspektasi return = ekspektasi PASARNYA, bukan sejarah instrumen itu sendiri. Uji kalibrasi
 //   menunjukkan sejarah saham tunggal terlalu optimis (BBCA: PIT 0,13 → 0,58 dengan prior pasar).
 // - Naik-turunnya (volatilitas, crash) tetap dari sejarah instrumen itu sendiri.

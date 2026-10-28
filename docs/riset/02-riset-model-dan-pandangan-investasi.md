@@ -1,6 +1,6 @@
 # Riset Model Simulasi & Pandangan Manajemen Investasi (Draft untuk diskusi, 23 Okt 2026)
 
-Lanjutan dari [RESEARCH.md](RESEARCH.md). Dua pertanyaan:
+Lanjutan dari [riset awal](01-riset-awal-dan-desain-model.md). Dua pertanyaan:
 **(A)** model apa yang dipakai riset & industri untuk mensimulasikan investasi saham, dan di mana posisi model kita;
 **(B)** sebagai manajemen investasi, pandangan apa yang paling penting dalam memilih instrumen.
 Angka "uji tuas" di §B dihitung dengan mesin dca-lab (Rp1 jt/bln × 10 thn, mode dasar, 4.000 jalur).
@@ -53,7 +53,7 @@ Angka "uji tuas" di §B dihitung dengan mesin dca-lab (Rp1 jt/bln × 10 thn, mod
 Stationary block bootstrap + recentering ke CMA = keluarga "bootstrap historis" (sama dengan
 Fama-French & Anarkulova dkk.), plus titik tengah berbasis CMA (meniru gagasan VCMM).
 Untuk perencanaan DCA 3–20 tahun ini pilihan yang tepat: lebih jujur soal ekor daripada GBM, jauh
-lebih sederhana daripada ESG, dan sudah lolos uji kalibrasi awal (RESEARCH.md §3).
+lebih sederhana daripada ESG, dan sudah lolos uji kalibrasi awal (riset awal §3).
 
 ### A.4 Perbaikan, diurutkan dari dampak terbesar
 

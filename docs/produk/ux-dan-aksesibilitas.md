@@ -2,6 +2,16 @@
 
 Nama aplikasi: **Cobain** (sejak 23 Okt 2026; sebelumnya "Coba-coba", dan "Prakira" di v1).
 
+## v3 (28 Okt 2026): tabel "Tahun demi tahun"
+
+Permintaan: analisis lebih dalam untuk periode beberapa tahun ke depan, dengan UI/UX sesuai standar. Rinciannya ada di [riset 04](../riset/04-uiux-tabel-proyeksi.md) dan [benchmark seandainya](../riset/03-benchmark-seandainya.md).
+
+- **Tabel sungguhan** dengan kolom Tahun menempel. Wadah geser bisa difokus keyboard. Isinya 4 kolom default + "Lihat rincian" (10 kolom lagi), dan horizon di atas 10 tahun menampilkan tahun penting dulu.
+- **Ketidakpastian di setiap baris:** bar sebaran bersumbu sama (apes, separuh kemungkinan, tengah, setoran, target), versi Apes/Tengah/Hoki (SEOJK 12/2014), dan peluang dalam bentuk "x dari 100".
+- **Momen penting otomatis** sebagai baris di dalam tabel (ikon + teks), plus wawasan inflasi dan **sejarah vs proyeksi**.
+- **Disclaimer** gaya FINRA 2214 / POJK, dengan link ke rumus. Ekspor **CSV** berpemisah titik koma untuk Excel Indonesia.
+- Tabel lama di bawah grafik dihapus. Tabel baru menjadi satu-satunya padanan teks grafik.
+
 ## v2 (23 Okt 2026): Coba-coba
 
 Masukan pengguna atas v1 ("Prakira"): copy terlalu banyak dan kaku, hasil kurang interaktif, desain kaku. Perubahan:
