@@ -97,7 +97,6 @@ export function FanChart({ fan, contributed, amount, title, pick }: Props) {
 
   const h = hover;
   const tipLeft = h !== null ? Math.min(Math.max(x(h) - 110, 4), width - 224) : 0;
-  const tableRows = Array.from({ length: Math.floor(years) }, (_, k) => (k + 1) * 12 - 1).concat(n % 12 ? [n - 1] : []);
 
   return (
     <figure className="m-0">
@@ -140,7 +139,7 @@ export function FanChart({ fan, contributed, amount, title, pick }: Props) {
         <div
           role="application"
           tabIndex={0}
-          aria-label={`${title}. Pakai panah kiri-kanan buat geser per bulan, tahan Shift buat per tahun. Angka lengkapnya ada di tabel di bawah.`}
+          aria-label={`${title}. Pakai panah kiri-kanan buat geser per bulan, tahan Shift buat per tahun. Angka lengkapnya ada di tabel Tahun demi tahun.`}
           onKeyDown={onKey}
           onFocus={() => {
             setFocused(true);
@@ -244,34 +243,7 @@ export function FanChart({ fan, contributed, amount, title, pick }: Props) {
           : ""}
       </p>
 
-      <details className="mt-3">
-        <summary className="inline-flex min-h-11 cursor-pointer items-center text-sm font-bold text-coral-ink">Lihat angkanya per tahun</summary>
-        <div className="mt-2 overflow-x-auto rounded-xl" tabIndex={0} role="region" aria-label="Tabel angka per tahun, bisa digeser">
-          <table className="w-full min-w-[520px] border-collapse text-sm tabular">
-            <caption className="sr-only">{title}, per akhir tahun</caption>
-            <thead>
-              <tr className="border-b border-line text-left text-ink-2">
-                <th scope="col" className="py-2 pr-3 font-semibold">Akhir</th>
-                <th scope="col" className="py-2 pr-3 text-right font-semibold">Disetor</th>
-                <th scope="col" className="py-2 pr-3 text-right font-semibold">Lagi apes</th>
-                <th scope="col" className="py-2 pr-3 text-right font-semibold">Tengah</th>
-                <th scope="col" className="py-2 text-right font-semibold">Lagi hoki</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tableRows.map((i) => (
-                <tr key={i} className="border-b border-line">
-                  <th scope="row" className="py-2 pr-3 text-left font-normal">{when(i)}</th>
-                  <td className="py-2 pr-3 text-right">{rupiahWords(d.c[i])}</td>
-                  <td className="py-2 pr-3 text-right">{rupiahWords(d.p5[i])}</td>
-                  <td className="py-2 pr-3 text-right font-semibold">{rupiahWords(d.p50[i])}</td>
-                  <td className="py-2 text-right">{rupiahWords(d.p95[i])}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </details>
+      <p className="mt-3 text-sm text-muted">Angka lengkap per tahun ada di tabel “Tahun demi tahun” di bawah.</p>
     </figure>
   );
 }

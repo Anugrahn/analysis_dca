@@ -11,7 +11,7 @@ const RECENT_MONTHS = 36;
 
 /**
  * Simpangan baku rata-rata return tahunan yang dipakai sebagai ketidakpastian parameter:
- * 10% dari volatilitas tahunan, minimal 0,5%. Lolos uji kalibrasi (docs/MODEL-RESEARCH.md).
+ * 10% dari volatilitas tahunan, minimal 0,5%. Lolos uji kalibrasi (docs/riset/02-riset-model-dan-pandangan-investasi.md).
  */
 export const sigmaMu = (annualVol: number) => Math.max(0.005, 0.1 * annualVol);
 
@@ -78,6 +78,19 @@ export interface McSummary {
   finalQuantiles: number[];
   /** jalur contoh (lihat McInput.samples); src = potongan sejarah [bulan mulai, panjang] */
   samples?: { final: number; path: number[]; src: [string, number][] | null }[];
+  /** "kalau dicairkan di akhir tahun ke-k": distribusi nilai bersih per akhir tahun */
+  yearly: YearStat[];
+}
+
+export interface YearStat {
+  /** bulan ke- (12, 24, …; bulan terakhir kalau durasinya tidak bulat tahunan) */
+  month: number;
+  /** total setoran sampai bulan itu */
+  contributed: number;
+  /** porsi jalur yang nilainya (setelah biaya jual) di bawah total setoran */
+  probLoss: number;
+  /** nilai bersih di persentil 0,1,…,100 */
+  quantiles: number[];
 }
 
 /**
@@ -247,6 +260,7 @@ export function simulate(input: McInput): McSummary {
     probBeatDeposit: share((i) => xirrs[i] > deposit),
     fan: { p5: [], p25: [], p50: [], p75: [], p95: [] },
     finalQuantiles: Array.from({ length: 101 }, (_, i) => quantile(sortedFinals, i / 100)),
+    yearly: [],
   };
   for (const col of pathVals) {
     const f = pct(col);
@@ -256,6 +270,23 @@ export function simulate(input: McInput): McSummary {
     out.fan.p75.push(f.p75);
     out.fan.p95.push(f.p95);
   }
+  // Per akhir tahun: nilai pasar dikurangi biaya jual (rata-rata tertimbang bobot — tepat untuk satu
+  // instrumen, perkiraan untuk campuran), dibandingkan dengan total setoran sampai saat itu.
+  const sellFee = used.reduce((acc, ins) => acc + plan.weights[ins.id] * ins.sellFee, 0);
+  const yearEnds = Array.from({ length: Math.floor(plan.months / 12) }, (_, k) => (k + 1) * 12 - 1);
+  if (plan.months % 12) yearEnds.push(plan.months - 1);
+  const cumContrib: number[] = [];
+  for (let m = 0, c = 0; m < plan.months; m++) {
+    c += plan.monthly * Math.pow(1 + (plan.stepUpYearly ?? 0), Math.floor(m / 12));
+    cumContrib.push(c);
+  }
+  out.yearly = yearEnds.map((m) => {
+    const net = Float64Array.from(pathVals[m], (v) => v * (1 - sellFee)).sort();
+    let losses = 0;
+    for (const v of net) if (v < cumContrib[m]) losses++;
+    return { month: m + 1, contributed: cumContrib[m], probLoss: losses / paths, quantiles: Array.from({ length: 101 }, (_, i) => quantile(net, i / 100)) };
+  });
+
   if (nSamples && idxs) {
     const order = Array.from({ length: paths }, (_, i) => i).sort((a, b) => finals[a] - finals[b]);
     out.samples = Array.from({ length: nSamples }, (_, k) => {

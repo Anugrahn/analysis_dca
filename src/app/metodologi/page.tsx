@@ -62,6 +62,37 @@ export default function Metodologi() {
         ))}
       </ol>
 
+      <section aria-labelledby="tahunan" className="mt-5 rounded-[var(--radius-card)] bg-surface p-6 sm:p-8">
+        <h2 id="tahunan" className="font-display text-2xl font-extrabold text-ink">
+          Tabel “Tahun demi tahun” dihitung gimana?
+        </h2>
+        <p className="mt-2 max-w-[66ch] text-ink-2">
+          Dari 4.000 masa depan tadi, kita intip nilainya di setiap akhir tahun, seolah kamu mencairkan semuanya hari itu (sudah dipotong biaya jual
+          & pajak). Lalu 4.000 angka itu diurutkan:
+        </p>
+        <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+          {[
+            ["Apes", "angka ke-200 dari bawah (persentil 5): cuma 5 dari 100 masa depan yang lebih jelek."],
+            ["Tengah", "angka di urutan tengah (persentil 50): separuh lebih bagus, separuh lebih jelek."],
+            ["Hoki", "angka ke-200 dari atas (persentil 95)."],
+            ["Separuh kemungkinan", "rentang persentil 25 sampai 75. Separuh masa depan jatuh di sini."],
+            ["Peluang rugi", "berapa dari 100 masa depan yang nilainya di bawah total setoran saat itu."],
+            ["Hasil investasi tahun ini", "kenaikan versi tengah selama setahun dikurangi setoranmu tahun itu. Kalau ini lebih gede dari setoran, bunga berbunga mulai kerasa."],
+            ["Tumbuh per tahun", "pertumbuhan tahunan versi tengah, dihitung dengan memperhitungkan kapan tiap setoran masuk (XIRR)."],
+            ["Kata sejarah", "kalau kamu nabung selama itu mulai dari tiap bulan di masa lalu, berapa dari 100 yang berakhir untung. Idenya dari tabel “Bedah instrumen” di seandainya.vercel.app."],
+          ].map(([t, d]) => (
+            <div key={t} className="rounded-2xl bg-page p-4">
+              <dt className="font-bold text-ink">{t}</dt>
+              <dd className="mt-1 text-sm text-ink-2">{d}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-4 max-w-[66ch] text-sm text-muted">
+          Kenapa “kata sejarah” sering lebih bagus dari proyeksi? Karena sejarah cuma punya satu jalan yang kebetulan terjadi, sedangkan proyeksi
+          memperhitungkan banyak jalan lain yang mungkin, termasuk yang lebih jelek. Kita sengaja tidak mengandalkan sejarah yang bagus.
+        </p>
+      </section>
+
       <section className="mt-5 rounded-[var(--radius-card)] bg-surface p-6 sm:p-8">
         <h2 className="font-display text-2xl font-extrabold text-ink">Seberapa bisa dipercaya?</h2>
         <p className="mt-2 max-w-[66ch] text-ink-2">
@@ -136,6 +167,9 @@ export default function Metodologi() {
             <li>Fama & French (2018), Long-Horizon Returns</li>
             <li>Anarkulova, Cederburg & O’Doherty (2022), Stocks for the Long Run?</li>
             <li>Gigerenzer & Hoffrage (1995), peluang dalam bentuk “12 dari 100”</li>
+            <li>Spiegelhalter, Pearson & Short (2011), menampilkan ketidakpastian masa depan</li>
+            <li>Tata cara tabel: GOV.UK & USWDS, NN/g, WAI. Skenario terbaik/standar/terburuk: SEOJK 12/2014</li>
+            <li>Inspirasi: seandainya.vercel.app oleh Rio Nur Arifin</li>
             <li>PMK 50/2025 (pajak kripto), UU HPP (dividen)</li>
           </ul>
         </div>

@@ -153,3 +153,18 @@ test("samples: 100 jalur di persentil nilai akhir, dengan potongan sejarah berur
     assert.equal(x.src!.reduce((n, [, len]) => n + len, 0), 60);
   }
 });
+
+test("yearly: distribusi per akhir tahun konsisten dengan hasil akhir", () => {
+  const panel = syntheticPanel(240, ["a"], 0.08, 0.2);
+  const ins: Instrument[] = [{ ...free("a"), sellFee: 0.01 }];
+  const s = simulate({ panel, mode: "dasar", instruments: ins, targets: { a: 0.08 }, paths: 3000, plan: { monthly: 1, months: 30, stepUpYearly: 0.1, weights: { a: 1 } } });
+  assert.deepEqual(s.yearly.map((y) => y.month), [12, 24, 30], "akhir tiap tahun + bulan terakhir");
+  close(s.yearly[1].contributed, 12 + 13.2, 1e-9);
+  close(s.yearly[2].contributed, s.contributed, 1e-9);
+  const last = s.yearly[2];
+  close(last.quantiles[50], s.final.p50, s.final.p50 * 0.002);
+  close(last.probLoss, s.probLoss, 0.002);
+  for (const y of s.yearly) for (let i = 1; i < 101; i++) assert.ok(y.quantiles[i] >= y.quantiles[i - 1]);
+  // Ketidakpastian melebar seiring waktu.
+  assert.ok(s.yearly[2].quantiles[95] - s.yearly[2].quantiles[5] > s.yearly[0].quantiles[95] - s.yearly[0].quantiles[5]);
+});

@@ -46,6 +46,25 @@ export interface Projection {
   contributedPath: number[];
   /** 100 jalur contoh, urut dari nilai akhir terburuk ke terbaik (per Rp1) */
   samples: { final: number; path: number[]; src: [string, number][] | null }[];
+  /** distribusi nilai bersih di tiap akhir tahun (per Rp1), untuk tabel per tahun */
+  yearly: { month: number; contributed: number; probLoss: number; quantiles: number[] }[];
+  /**
+   * Sejarah per durasi: DCA selama `month` bulan dari semua bulan mulai di masa lalu (per Rp1).
+   * Kosong untuk instrumen model; berhenti di durasi yang sejarahnya terlalu pendek.
+   */
+  pastYearly: {
+    month: number;
+    runs: number;
+    /** bulan mulai pertama & terakhir yang dicoba */
+    from: string;
+    to: string;
+    pctProfit: number;
+    medianGrowth: number;
+    p10: number;
+    p50: number;
+    p90: number;
+    worst: number;
+  }[];
   explain: {
     historyFrom: string | null;
     historyTo: string | null;

@@ -7,6 +7,7 @@ import type { Mode, Projection } from "@/lib/app/types";
 import { FanChart } from "./fan-chart";
 import { FuturesLab } from "./futures-lab";
 import { Icon3D, type Icon3DName } from "./icon3d";
+import { YearTable } from "./year-table";
 
 export const MODE_OPTIONS: { value: Mode; label: string; hint: string }[] = [
   { value: "dasar", label: "Normal", hint: "Pakai perkiraan para ahli." },
@@ -207,6 +208,8 @@ export function ResultView({ data, amount, onAmount, goal, mode, onMode, busy, h
           pick={{ path: data.samples[selected].path, label: `Masa depan #${selected + 1}` }}
         />
       </section>
+
+      <YearTable data={data} amount={amount} goal={goal} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <section aria-labelledby={`${uid}-why`} className="rounded-[var(--radius-card)] bg-surface p-6">

@@ -5,7 +5,7 @@ import { commonWindow, componentsOf, nextMonth, panelFrom, type Panel } from "..
 import type { DcaPlan } from "../sim/dca.ts";
 import { fxId } from "../sim/instruments.ts";
 import { sigmaMu, simulate, type McSummary } from "../sim/montecarlo.ts";
-import { mean, std } from "../sim/stats.ts";
+import { mean, quantile, std } from "../sim/stats.ts";
 import { classify, MODEL_PROFILES, type Profile } from "../market/classify.ts";
 import { fxToIdr, MarketError, monthlyHistory, peersOf, searchYahoo, type MonthlyHistory } from "../market/yahoo.ts";
 import type { Alternative, AltGroup, Alternatives, Latest, Outcome, Projection } from "./types.ts";
@@ -204,6 +204,29 @@ export async function project(symbol: string, years: number, mode: Mode, stepUp:
     }
   }
 
+  // Sejarah per durasi (ide "Bedah instrumen" seandainya): untuk tiap tahun ke-k, DCA k tahun dari
+  // SEMUA bulan mulai yang pernah ada. Dipakai sebagai pembanding proyeksi, bukan sebagai harapan.
+  const pastYearly: Projection["pastYearly"] = [];
+  if (l.history) {
+    for (const y of sim.yearly) {
+      const bt = backtest(panel, { ...plan, months: y.month }, [ins]);
+      if (bt.runs.length < 3) break;
+      const finals = Float64Array.from(bt.runs, (r) => r.finalValue).sort();
+      pastYearly.push({
+        month: y.month,
+        runs: bt.runs.length,
+        from: bt.runs[0].start,
+        to: bt.runs[bt.runs.length - 1].start,
+        pctProfit: bt.pctProfit,
+        medianGrowth: bt.xirr.p50,
+        p10: round4(quantile(finals, 0.1)),
+        p50: round4(quantile(finals, 0.5)),
+        p90: round4(quantile(finals, 0.9)),
+        worst: round4(finals[0]),
+      });
+    }
+  }
+
   // Ekspektasi yang benar-benar dipakai (untuk dijelaskan): lokal + kurs.
   let expectedLocal: number;
   let fx = 0;
@@ -226,6 +249,8 @@ export async function project(symbol: string, years: number, mode: Mode, stepUp:
     outcome: outcomeOf(sim),
     fan: sim.fan,
     samples: (sim.samples ?? []).map((x) => ({ final: round4(x.final), path: x.path.map(round4), src: x.src })),
+    yearly: sim.yearly.map((y) => ({ month: y.month, contributed: round4(y.contributed), probLoss: y.probLoss, quantiles: y.quantiles.map(round4) })),
+    pastYearly,
     contributedPath: Array.from({ length: years * 12 }, (_, m) => {
       let c = 0;
       for (let k = 0; k <= m; k++) c += Math.pow(1 + stepUp, Math.floor(k / 12));
