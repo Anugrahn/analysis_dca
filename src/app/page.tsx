@@ -15,6 +15,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
   const mode = one(sp.mode) as Mode;
   const naik = Number(one(sp.naik));
   const target = Number(one(sp.target));
+  const dividen = one(sp.dividen);
   const initial: PlannerInitial = {
     symbol: s && /^[A-Za-z0-9.^=\-]{1,24}$/.test(s) ? s : null,
     amount: m >= 10_000 && m <= 10_000_000_000 ? m : 1_000_000,
@@ -22,6 +23,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Rec
     mode: MODES.includes(mode) ? mode : "dasar",
     stepUp: naik >= 0 && naik <= 0.2 ? naik : 0,
     goal: target > 0 ? target : null,
+    dividends: dividen === "tunai" ? "tunai" : "putar",
   };
   return (
     <main className="mx-auto w-full max-w-[1120px] px-4 pt-2 sm:px-6">

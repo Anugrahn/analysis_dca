@@ -9,7 +9,7 @@
 
 import type { Mode } from "../sim/assumptions.ts";
 import { ASSUMPTIONS } from "../sim/assumptions.ts";
-import type { Instrument } from "../sim/instruments.ts";
+import { HALF_SPREAD, ID_DIV_TAX, NO_DIV_TAX, US_DIV_TAX, type Instrument } from "../sim/instruments.ts";
 
 export type Kind = "saham" | "etf" | "reksadana" | "indeks" | "kripto" | "komoditas" | "kas";
 
@@ -160,16 +160,21 @@ export function classify(x: ClassifyInput): Profile {
     warnings.push("Indeks nggak bisa dibeli langsung. Kita hitung seolah kamu beli lewat reksa dana indeks atau ETF-nya.");
   }
 
-  // Biaya & pajak.
+  // Biaya & pajak. Yang diperdagangkan di bursa (saham, ETF, kripto) juga bayar selisih harga
+  // beli-jual 0,1% (separuh tiap sisi), sama dengan seandainya. Indeks dibeli lewat reksa dana di
+  // harga NAB, dan selisih harga emas sudah termasuk di biayanya.
+  const spread = qt === "EQUITY" || qt === "ETF" || qt === "CRYPTOCURRENCY" ? HALF_SPREAD : 0;
+  const spreadText = spread ? " Plus selisih harga beli-jual ±0,1%." : "";
   let buyFee = 0.003;
   let sellFee = 0.003;
-  let divDrag = 0;
+  let annualFee = 0;
+  let divTax = NO_DIV_TAX;
   let costs = "";
   const isUs = US_EXCHANGES.has(x.exchange) || (kind === "indeks" && x.currency === "USD");
   if (kind === "kripto") {
     buyFee = 0.002;
     sellFee = 0.002 + 0.0021;
-    costs = "Fee exchange ±0,2% tiap beli & jual, plus pajak 0,21% pas jual (exchange terdaftar OJK).";
+    costs = `Fee exchange ±0,2% tiap beli & jual, plus pajak 0,21% pas jual (exchange terdaftar OJK).${spreadText}`;
   } else if (kind === "komoditas" && /^(GC|MGC|SI)=F$/.test(x.symbol)) {
     buyFee = 0.015;
     sellFee = 0.015;
@@ -177,26 +182,29 @@ export function classify(x: ClassifyInput): Profile {
   } else if (kind === "komoditas") {
     buyFee = 0.005;
     sellFee = 0.005;
-    divDrag = 0.006;
+    annualFee = 0.006;
     costs = "Komisi ±0,5% tiap transaksi plus biaya kelola produk komoditas ±0,6% setahun.";
   } else if (kind === "indeks") {
     buyFee = 0;
     sellFee = 0;
-    divDrag = 0.005;
-    costs = "Biaya kelola reksa dana indeks ±0,5% setahun.";
+    annualFee = 0.005;
+    costs = "Biaya kelola reksa dana indeks ±0,5% setahun. Bagi hasil reksa dana bukan objek pajak.";
   } else if (x.currency === "IDR") {
     buyFee = 0.0015;
     sellFee = 0.0025;
-    costs = "Fee broker ±0,15% pas beli dan ±0,25% pas jual (udah termasuk pajak 0,1%). Dividen dianggap diputar lagi, jadi bebas pajak.";
+    divTax = ID_DIV_TAX;
+    costs = `Fee broker ±0,15% pas beli dan ±0,25% pas jual (udah termasuk pajak 0,1%).${spreadText} Dividen bebas pajak kalau diputar lagi, kena 10% kalau diambil.`;
   } else if (isUs) {
-    divDrag = 0.15 * x.dividendYield;
-    costs = "Komisi + selisih kurs ±0,3% tiap transaksi. Dividen kena pajak Amerika 15%.";
+    divTax = US_DIV_TAX;
+    costs = `Komisi + selisih kurs ±0,3% tiap transaksi.${spreadText} Dividen kena pajak Amerika 15%.`;
   } else {
     buyFee = 0.005;
     sellFee = 0.005;
-    divDrag = 0.15 * x.dividendYield;
-    costs = "Komisi broker luar + selisih kurs ±0,5% tiap transaksi. Dividen kena pajak ±15%.";
+    divTax = US_DIV_TAX;
+    costs = `Komisi broker luar + selisih kurs ±0,5% tiap transaksi.${spreadText} Dividen kena pajak ±15%.`;
   }
+  buyFee += spread;
+  sellFee += spread;
   if (x.currency !== "IDR") {
     costs += ` Semua dihitung ke Rupiah tiap bulan pakai kurs ${x.currency}/IDR.`;
   }
@@ -205,10 +213,11 @@ export function classify(x: ClassifyInput): Profile {
     id: x.symbol,
     name: x.name,
     cls: kind === "kripto" ? "kripto" : kind === "komoditas" ? "emas" : kind === "kas" ? "kas" : x.currency === "IDR" ? "saham-id" : "saham-us",
-    source: { kind: "yahoo", symbol: x.symbol, currency: x.currency },
+    source: { kind: "yahoo", symbol: x.symbol, currency: x.currency, divYield: x.dividendYield },
     buyFee,
     sellFee,
-    divDrag,
+    annualFee,
+    divTax,
     note: "",
   };
 
@@ -230,25 +239,27 @@ export function classify(x: ClassifyInput): Profile {
   };
 }
 
+const MODEL_COSTS = { buyFee: 0, sellFee: 0, annualFee: 0, divTax: NO_DIV_TAX };
+
 /** Instrumen tanpa data harga publik: dimodelkan dari asumsi (sim/assumptions.ts). */
 export const MODEL_PROFILES: Profile[] = [
   {
     symbol: "rdpu", name: "Reksa Dana Pasar Uang", kind: "kas", kindLabel: KIND_LABEL.kas, exchangeName: "Model", currency: "IDR",
-    instrument: { id: "rdpu", name: "Reksa Dana Pasar Uang", cls: "kas", source: { kind: "model" }, buyFee: 0, sellFee: 0, divDrag: 0, note: "" },
+    instrument: { id: "rdpu", name: "Reksa Dana Pasar Uang", cls: "kas", source: { kind: "model" }, ...MODEL_COSTS, note: "" },
     assumption: { target: { dasar: ASSUMPTIONS.dasar.model.rdpu.rate, konservatif: ASSUMPTIONS.konservatif.model.rdpu.rate }, why: "Imbal hasil bersih reksa dana pasar uang saat ini (udah dipotong biaya)." },
     costs: "Nggak ada biaya beli/jual, dan hasilnya bebas pajak.",
     warnings: ["Ini hitungan dari suku bunga, bukan produk tertentu. Hasilnya ikut naik-turun sama bunga BI."],
   },
   {
     symbol: "sbn", name: "SBN Ritel (ORI / SR)", kind: "kas", kindLabel: KIND_LABEL.kas, exchangeName: "Model", currency: "IDR",
-    instrument: { id: "sbn", name: "SBN Ritel (ORI / SR)", cls: "obligasi", source: { kind: "model" }, buyFee: 0, sellFee: 0, divDrag: 0, note: "" },
+    instrument: { id: "sbn", name: "SBN Ritel (ORI / SR)", cls: "obligasi", source: { kind: "model" }, ...MODEL_COSTS, note: "" },
     assumption: { target: { dasar: ASSUMPTIONS.dasar.model.sbn.rate, konservatif: ASSUMPTIONS.konservatif.model.sbn.rate }, why: "Kupon SBN ritel ±6% setahun, dipotong pajak 10%." },
     costs: "Gratis kalau dipegang sampai jatuh tempo. Kupon kena pajak 10%.",
     warnings: ["SBN ritel cuma dijual di masa penawaran tertentu, minimal Rp1 juta. Dianggap dipegang sampai jatuh tempo."],
   },
   {
     symbol: "deposito", name: "Deposito bank", kind: "kas", kindLabel: KIND_LABEL.kas, exchangeName: "Model", currency: "IDR",
-    instrument: { id: "deposito", name: "Deposito bank", cls: "kas", source: { kind: "model" }, buyFee: 0, sellFee: 0, divDrag: 0, note: "" },
+    instrument: { id: "deposito", name: "Deposito bank", cls: "kas", source: { kind: "model" }, ...MODEL_COSTS, note: "" },
     assumption: { target: { dasar: ASSUMPTIONS.dasar.model.deposito.rate, konservatif: ASSUMPTIONS.konservatif.model.deposito.rate }, why: "Bunga deposito bank besar, dipotong pajak 20%." },
     costs: "Bunga kena pajak 20%. Dijamin LPS sampai batas tertentu.",
     warnings: [],

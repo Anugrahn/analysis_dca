@@ -1,7 +1,8 @@
 import { assumptionsFor, type Mode } from "./assumptions.ts";
-import { commonWindow, componentsOf, nextMonth, type Panel } from "./data.ts";
+import { commonWindow, componentsOf, dividendPart, divId, nextMonth, type Panel } from "./data.ts";
 import { runDca, type DcaPlan } from "./dca.ts";
 import { fxId, INSTRUMENTS, type Instrument } from "./instruments.ts";
+import { medianRisk, riskMetrics, stabilityScore, type RiskMetrics } from "./risk.ts";
 import { mean, pct, quantile, rng, std, type Pct } from "./stats.ts";
 
 /** Komponen dengan sejarah sepanjang ini (bulan) yang menentukan jendela bootstrap. */
@@ -61,8 +62,16 @@ export interface McSummary {
   /** nilai akhir dalam Rupiah hari ini (dikurangi asumsi inflasi) */
   finalReal: Pct;
   xirr: Pct;
+  /** XIRR di atas asumsi inflasi */
+  realXirr: Pct;
   maxDrawdown: Pct;
   worstVsContrib: Pct;
+  /** median metrik risiko semua jalur (bunga bebas risiko = asumsi deposito) */
+  risk: RiskMetrics;
+  /** skor stabilitas 0–100 dengan rumus yang sama seperti sejarah (risk.ts) */
+  stability: number;
+  /** dividen tunai yang terkumpul di akhir (setelah pajak); null kalau dividen diputar */
+  cash: Pct | null;
   probLoss: number;
   probBeatInflation: number;
   probBeatDeposit: number;
@@ -118,7 +127,12 @@ export function simulate(input: McInput): McSummary {
       if (!ins) throw new Error(`Instrumen tidak dikenal: ${id}`);
       return ins;
     });
-  const comps = [...new Set(used.flatMap(componentsOf))];
+  // Seri dividen ikut ditarik dari bulan yang sama dengan harganya (musim dividen tetap utuh).
+  // Tidak digeser ke asumsi: yang digeser return totalnya, dividen hanya membaginya.
+  const comps = [
+    ...new Set(used.flatMap(componentsOf)),
+    ...used.map((ins) => divId(ins.id)).filter((c) => panel.comps[c]),
+  ];
 
   // Matriks sejarah [bulan][komponen], sudah di-recenter jika perlu.
   let hist: Float64Array[] = [];
@@ -131,13 +145,13 @@ export function simulate(input: McInput): McSummary {
     // (crash & rally tetap utuh); korelasinya dengan aset lain di bulan-bulan itu memang hilang.
     const own = Object.fromEntries(comps.map((c) => [c, commonWindow(panel, [c], input.historyEnd)]));
     const span = (c: string) => own[c][1] - own[c][0];
-    const long = comps.filter((c) => span(c) >= LONG_HISTORY);
+    const long = comps.filter((c) => span(c) >= LONG_HISTORY && !c.startsWith("div:"));
     const [from, to] = commonWindow(panel, long.length ? long : comps, input.historyEnd);
     const short = comps.filter((c) => span(c) < 36);
     if (to - from < 36 || short.length) {
       throw new Error(`Sejarah terlalu pendek untuk ${short.length ? short.join(", ") : comps.join(", ")}`);
     }
-    const backfilled = comps.filter((c) => own[c][0] > from || own[c][1] < to);
+    const backfilled = comps.filter((c) => !c.startsWith("div:") && (own[c][0] > from || own[c][1] < to));
     const sc = input.storySource && comps.includes(input.storySource) ? input.storySource : comps[0];
     {
       const [a, b] = own[sc];
@@ -159,6 +173,7 @@ export function simulate(input: McInput): McSummary {
     );
     if (mode !== "historis") {
       comps.forEach((c, k) => {
+        if (c.startsWith("div:")) return;
         const target = input.targets?.[c] ?? (c.startsWith("fx:") ? A.fx : A.targets[c]);
         if (target === undefined) throw new Error(`Tidak ada asumsi return untuk ${c}`);
         const shift = Math.log(1 + target) / 12 - mean(hist.map((row) => row[k]));
@@ -185,16 +200,27 @@ export function simulate(input: McInput): McSummary {
   const fxCol = Object.fromEntries(
     used.map((ins) => [ins.id, ins.source.kind === "yahoo" ? comps.indexOf(fxId(ins.source.currency)) : -1]),
   );
+  const divCol = Object.fromEntries(used.map((ins) => [ins.id, comps.indexOf(divId(ins.id))]));
+  const divFlat = Object.fromEntries(used.map((ins) => [ins.id, ins.source.kind === "yahoo" ? (ins.source.divYield ?? 0) / 12 : 0]));
+  const deposit = A.model.deposito.rate;
 
   const finals = new Float64Array(paths);
   const xirrs = new Float64Array(paths);
   const dds = new Float64Array(paths);
   const worst = new Float64Array(paths);
+  const risks: RiskMetrics[] = [];
+  const tunai = plan.dividends === "tunai";
+  const cashEnd = tunai ? new Float64Array(paths) : null;
+  const cashVals = tunai ? Array.from({ length: plan.months }, () => new Float64Array(paths)) : null;
   const pathVals = Array.from({ length: plan.months }, () => new Float64Array(paths));
   let contributed = 0;
 
   const rets: Record<string, Float64Array> = {};
-  for (const ins of used) rets[ins.id] = new Float64Array(plan.months);
+  const divs: Record<string, Float64Array> = {};
+  for (const ins of used) {
+    rets[ins.id] = new Float64Array(plan.months);
+    divs[ins.id] = new Float64Array(plan.months);
+  }
 
   // Ketidakpastian rata-rata: geser bulanan per jalur, per komponen (dan per instrumen model).
   const sigComp = comps.map((c) => input.uncertainty?.[c] ?? 0);
@@ -223,21 +249,27 @@ export function simulate(input: McInput): McSummary {
           const a = A.model[ins.id];
           lr = Math.log(1 + a.rate) / 12 + shiftModel[ins.id] + (a.vol / Math.sqrt(12)) * R.normal();
         }
-        rets[ins.id][m] = Math.exp(lr) - 1;
+        const r = Math.exp(lr) - 1;
+        rets[ins.id][m] = r;
+        divs[ins.id][m] = divCol[ins.id] >= 0 ? dividendPart(r, hist[idx][divCol[ins.id]]) : divFlat[ins.id];
       }
     }
-    const res = runDca(plan, instruments, (m, id) => rets[id][m]);
+    const res = runDca(plan, instruments, (m, id) => rets[id][m], (m, id) => divs[id][m]);
     contributed = res.contributed;
     finals[p] = res.finalValue;
     xirrs[p] = res.xirr;
     dds[p] = res.maxDrawdown;
     worst[p] = res.worstVsContrib;
+    risks.push(riskMetrics(res.returns, deposit));
     for (let m = 0; m < plan.months; m++) pathVals[m][p] = res.path[m];
+    if (cashEnd && cashVals && res.cashPath) {
+      cashEnd[p] = res.cashPath[plan.months - 1];
+      for (let m = 0; m < plan.months; m++) cashVals[m][p] = res.cashPath[m];
+    }
   }
 
   const years = plan.months / 12;
   const deflator = Math.pow(1 + A.inflation, years);
-  const deposit = A.model.deposito.rate;
   const share = (pred: (i: number) => boolean) => {
     let n = 0;
     for (let i = 0; i < paths; i++) if (pred(i)) n++;
@@ -245,6 +277,10 @@ export function simulate(input: McInput): McSummary {
   };
 
   const sortedFinals = Float64Array.from(finals).sort();
+  const xirr = pct(xirrs);
+  const maxDrawdown = pct(dds);
+  const probLoss = share((i) => finals[i] < contributed);
+  const probBeatInflation = share((i) => xirrs[i] > A.inflation);
   const out: McSummary = {
     mode,
     paths,
@@ -252,11 +288,15 @@ export function simulate(input: McInput): McSummary {
     contributed,
     final: pct(finals),
     finalReal: pct(finals.map((v) => v / deflator)),
-    xirr: pct(xirrs),
-    maxDrawdown: pct(dds),
+    xirr,
+    realXirr: pct(xirrs.map((x) => (1 + x) / (1 + A.inflation) - 1)),
+    maxDrawdown,
     worstVsContrib: pct(worst),
-    probLoss: share((i) => finals[i] < contributed),
-    probBeatInflation: share((i) => xirrs[i] > A.inflation),
+    risk: medianRisk(risks),
+    stability: stabilityScore({ pctProfit: 1 - probLoss, pctBeatInflation: probBeatInflation, iqrGrowth: xirr.p75 - xirr.p25, medianMdd: maxDrawdown.p50 }),
+    cash: cashEnd ? pct(cashEnd) : null,
+    probLoss,
+    probBeatInflation,
     probBeatDeposit: share((i) => xirrs[i] > deposit),
     fan: { p5: [], p25: [], p50: [], p75: [], p95: [] },
     finalQuantiles: Array.from({ length: 101 }, (_, i) => quantile(sortedFinals, i / 100)),
@@ -272,6 +312,7 @@ export function simulate(input: McInput): McSummary {
   }
   // Per akhir tahun: nilai pasar dikurangi biaya jual (rata-rata tertimbang bobot — tepat untuk satu
   // instrumen, perkiraan untuk campuran), dibandingkan dengan total setoran sampai saat itu.
+  // Dividen tunai tidak kena biaya jual.
   const sellFee = used.reduce((acc, ins) => acc + plan.weights[ins.id] * ins.sellFee, 0);
   const yearEnds = Array.from({ length: Math.floor(plan.months / 12) }, (_, k) => (k + 1) * 12 - 1);
   if (plan.months % 12) yearEnds.push(plan.months - 1);
@@ -281,7 +322,8 @@ export function simulate(input: McInput): McSummary {
     cumContrib.push(c);
   }
   out.yearly = yearEnds.map((m) => {
-    const net = Float64Array.from(pathVals[m], (v) => v * (1 - sellFee)).sort();
+    const cashM = cashVals?.[m];
+    const net = Float64Array.from(pathVals[m], (v, p) => (cashM ? (v - cashM[p]) * (1 - sellFee) + cashM[p] : v * (1 - sellFee))).sort();
     let losses = 0;
     for (const v of net) if (v < cumContrib[m]) losses++;
     return { month: m + 1, contributed: cumContrib[m], probLoss: losses / paths, quantiles: Array.from({ length: 101 }, (_, i) => quantile(net, i / 100)) };

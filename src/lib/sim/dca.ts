@@ -11,7 +11,11 @@ export interface DcaPlan {
   weights: Record<string, number>;
   /** kembalikan ke bobot target tiap 12 bulan (kena biaya jual/beli) */
   rebalanceYearly?: boolean;
+  /** dividen dibelikan lagi (default) atau diambil tunai dan didiamkan tanpa bunga */
+  dividends?: DividendMode;
 }
+
+export type DividendMode = "putar" | "tunai";
 
 export interface DcaResult {
   contributed: number;
@@ -23,17 +27,29 @@ export interface DcaResult {
   maxDrawdown: number;
   /** titik terburuk nilai portofolio dibanding total setoran saat itu (negatif = sempat rugi) */
   worstVsContrib: number;
-  /** nilai pasar portofolio di akhir tiap bulan */
+  /** nilai pasar portofolio di akhir tiap bulan (termasuk dividen tunai) */
   path: number[];
+  /** return bulanan portofolio (time-weighted: tanpa efek setoran baru), untuk metrik risiko */
+  returns: Float64Array;
+  /** dividen tunai yang terkumpul (setelah pajak) di akhir tiap bulan; null kalau dividen diputar */
+  cashPath: Float64Array | null;
 }
 
 /**
  * Jalankan satu skenario DCA.
  * Urutan per bulan: setor di awal bulan → beli sesuai bobot (dikurangi biaya beli) →
  * kena return bulan itu → (opsional) rebalance di akhir bulan ke-12, 24, ...
- * `ret(m, id)` = return sederhana Rupiah instrumen `id` pada bulan ke-m.
+ * `ret(m, id)` = return total sederhana Rupiah instrumen `id` pada bulan ke-m (dividen termasuk).
+ * `div(m, id)` = bagian dividen dari return itu; tanpa `div`, dipakai `source.divYield / 12`.
+ * Dividen kena pajak `divTax`; dalam mode tunai dividen keluar dari portofolio dan menganggur
+ * dengan bunga 0% sampai akhir (sama dengan seandainya), tidak ikut di-rebalance.
  */
-export function runDca(plan: DcaPlan, instruments: Instrument[], ret: (m: number, id: string) => number): DcaResult {
+export function runDca(
+  plan: DcaPlan,
+  instruments: Instrument[],
+  ret: (m: number, id: string) => number,
+  div?: (m: number, id: string) => number,
+): DcaResult {
   const ids = Object.keys(plan.weights).filter((id) => plan.weights[id] > 0);
   const ins = ids.map((id) => {
     const i = instruments.find((x) => x.id === id);
@@ -44,9 +60,14 @@ export function runDca(plan: DcaPlan, instruments: Instrument[], ret: (m: number
   const wSum = w.reduce((a, b) => a + b, 0);
   if (Math.abs(wSum - 1) > 1e-6) throw new Error(`Total bobot harus 1 (sekarang ${wSum})`);
 
+  const tunai = plan.dividends === "tunai";
+  const divOf = ins.map((i) => (div ? null : i.source.kind === "yahoo" ? (i.source.divYield ?? 0) / 12 : 0));
   const hold = new Array<number>(ids.length).fill(0);
   const flows: number[] = [];
   const path: number[] = [];
+  const returns = new Float64Array(plan.months);
+  const cashPath = tunai ? new Float64Array(plan.months) : null;
+  let cash = 0;
   let contributed = 0;
   let twr = 1;
   let twrPeak = 1;
@@ -59,24 +80,32 @@ export function runDca(plan: DcaPlan, instruments: Instrument[], ret: (m: number
     flows.push(c);
     for (let k = 0; k < ids.length; k++) hold[k] += c * w[k] * (1 - ins[k].buyFee);
 
-    const before = sum(hold);
+    const before = sum(hold) + cash;
     for (let k = 0; k < ids.length; k++) {
-      const r = ret(m, ids[k]) - ins[k].divDrag / 12;
-      hold[k] *= 1 + r;
+      const d = divOf[k] ?? div!(m, ids[k]);
+      const r = ret(m, ids[k]) - ins[k].annualFee / 12;
+      if (tunai) {
+        cash += hold[k] * d * (1 - ins[k].divTax.tunai);
+        hold[k] *= 1 + r - d;
+      } else {
+        hold[k] *= 1 + r - d * ins[k].divTax.putar;
+      }
     }
-    const after = sum(hold);
+    const after = sum(hold) + cash;
 
+    returns[m] = after / before - 1;
     twr *= after / before;
     twrPeak = Math.max(twrPeak, twr);
     maxDrawdown = Math.min(maxDrawdown, twr / twrPeak - 1);
     worstVsContrib = Math.min(worstVsContrib, after / contributed - 1);
 
     if (plan.rebalanceYearly && (m + 1) % 12 === 0 && m + 1 < plan.months) rebalance(hold, w, ins);
-    path.push(sum(hold));
+    path.push(sum(hold) + cash);
+    if (cashPath) cashPath[m] = cash;
   }
 
-  const finalValue = hold.reduce((acc, v, k) => acc + v * (1 - ins[k].sellFee), 0);
-  return { contributed, finalValue, xirr: xirrMonthly(flows, finalValue), maxDrawdown, worstVsContrib, path };
+  const finalValue = hold.reduce((acc, v, k) => acc + v * (1 - ins[k].sellFee), cash);
+  return { contributed, finalValue, xirr: xirrMonthly(flows, finalValue), maxDrawdown, worstVsContrib, path, returns, cashPath };
 }
 
 function rebalance(hold: number[], w: number[], ins: Instrument[]) {

@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const p = parsePlan(req.nextUrl.searchParams);
   if ("error" in p) return Response.json(p, { status: 400 });
   try {
-    return Response.json(await project(p.symbol, p.years, p.mode, p.stepUp), { headers: CACHE_HEADERS });
+    return Response.json(await project(p), { headers: CACHE_HEADERS });
   } catch (e) {
     return errorResponse(e);
   }

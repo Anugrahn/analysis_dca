@@ -21,6 +21,19 @@ export interface Panel {
 
 export const CPI_ID = "cpi";
 
+/**
+ * Komponen panel untuk bagian dividen dari return instrumen `id`: ln(adjusted/close) per bulan,
+ * jadi return total = return harga + komponen ini. Indeks harga memakai `addYield` sebagai dividen.
+ */
+export const divId = (id: string) => `div:${id}`;
+
+/**
+ * Bagian dividen (pecahan nilai awal bulan) dari return total sederhana `r`, dengan log-dividen `ld`.
+ * Dibatasi 0–20% sebulan: rasio adjusted/close yang turun atau melonjak (koreksi data, rights issue)
+ * bukan dividen.
+ */
+export const dividendPart = (r: number, ld: number) => (1 + r) * (1 - Math.exp(-Math.min(Math.max(ld, 0), 0.2)));
+
 export function nextMonth(m: string): string {
   const [y, mo] = m.split("-").map(Number);
   return mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`;

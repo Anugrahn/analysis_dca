@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   const p = parsePlan(req.nextUrl.searchParams);
   if ("error" in p) return Response.json(p, { status: 400 });
   try {
-    const data = await alternatives(p.symbol, p.years, p.mode, p.stepUp);
+    const data = await alternatives(p);
     return Response.json(data, { headers: data.degraded ? NO_STORE : CACHE_HEADERS });
   } catch (e) {
     return errorResponse(e);

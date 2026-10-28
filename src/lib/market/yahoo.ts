@@ -2,6 +2,8 @@
 // Sumber: Yahoo Finance chart/search API (tanpa kunci) + FRED untuk menambal kurs USD/IDR.
 // Di Next.js, opsi `next.revalidate` membuat respons di-cache; di Node biasa opsi itu diabaikan.
 
+import { nextMonth } from "../sim/data.ts";
+
 const UA = { "User-Agent": "Mozilla/5.0" };
 const HOUR = 3600;
 
@@ -83,6 +85,8 @@ export interface MonthlyHistory {
   /** "YYYY-MM", penutupan (adjusted) terakhir tiap bulan yang sudah selesai */
   months: string[];
   values: number[];
+  /** penutupan biasa (hanya disesuaikan split) di hari yang sama; adjusted ÷ close naik saat ada dividen */
+  closes: number[];
   /** harga terakhir (bisa di bulan berjalan) */
   last: { price: number; date: string };
   /** dividen 12 bulan terakhir ÷ harga terakhir */
@@ -111,7 +115,7 @@ export async function monthlyHistory(symbol: string, closeOf: "last" | "median5"
   const close: (number | null)[] = r.indicators.quote[0].close;
   const days = ts
     .map((t, i) => ({ t, v: raw[i], c: close[i] }))
-    .filter((x): x is { t: number; v: number; c: number } => x.v != null && x.v > 0 && x.c != null);
+    .filter((x): x is { t: number; v: number; c: number } => x.v != null && x.v > 0 && x.c != null && x.c > 0);
   const clean = days.filter((x, i) => !isSpike(days[i - 1]?.v, x.v, days[i + 1]?.v));
   if (!clean.length) throw new MarketError(`Data harga ${symbol} kosong.`, 404);
 
@@ -119,13 +123,14 @@ export async function monthlyHistory(symbol: string, closeOf: "last" | "median5"
   // 23:00 UTC hari sebelumnya — offset bursa menaruh semuanya di hari (dan bulan) yang benar.
   const offset = meta.gmtoffset ?? 0;
   const thisMonth = new Date().toISOString().slice(0, 7);
-  const byMonth = new Map<string, number[]>();
-  for (const { t, v } of clean) {
-    const m = monthOf(t, offset);
-    if (m < thisMonth) byMonth.set(m, [...(byMonth.get(m) ?? []), v]);
+  const byMonth = new Map<string, { v: number; c: number }[]>();
+  for (const x of clean) {
+    const m = monthOf(x.t, offset);
+    if (m < thisMonth) byMonth.set(m, [...(byMonth.get(m) ?? []), x]);
   }
   const months = [...byMonth.keys()].sort();
-  const pick = (vs: number[]) => (closeOf === "last" ? vs[vs.length - 1] : median(vs.slice(-5)));
+  const pick = (xs: { v: number; c: number }[], k: "v" | "c") =>
+    closeOf === "last" ? xs[xs.length - 1][k] : median(xs.slice(-5).map((x) => x[k]));
 
   const lastDay = clean[clean.length - 1];
   const yearAgo = lastDay.t - 365 * 86400;
@@ -144,7 +149,8 @@ export async function monthlyHistory(symbol: string, closeOf: "last" | "median5"
     exchangeName: meta.fullExchangeName ?? meta.exchangeName ?? "",
     currency: normalizeCurrency(meta.currency ?? "USD").code,
     months,
-    values: months.map((m) => pick(byMonth.get(m)!)),
+    values: months.map((m) => pick(byMonth.get(m)!, "v")),
+    closes: months.map((m) => pick(byMonth.get(m)!, "c")),
     // Harga dalam pence/sen ditampilkan dalam mata uang induknya (GBp 117,65 → GBP 1,18).
     last: { price: lastDay.c / normalizeCurrency(meta.currency ?? "USD").divisor, date: new Date((lastDay.t + offset) * 1000).toISOString().slice(0, 10) },
     dividendYield: lastDay.c > 0 ? divs / lastDay.c : 0,
@@ -184,6 +190,31 @@ export async function usdIdr(): Promise<{ months: string[]; values: number[] }> 
   }
   const months = [...got.keys()].sort();
   return { months, values: months.map((m) => got.get(m)!) };
+}
+
+/**
+ * Indeks harga konsumen Indonesia bulanan. FRED (OECD) berhenti di Apr 2025, jadi bulan sesudahnya
+ * diisi dengan inflasi tahunan Bank Dunia untuk tahun yang sudah ada, lalu dengan `assumed`.
+ * `measuredTo` & `filledTo` memberi tahu bagian mana yang data asli.
+ */
+export async function cpiIndonesia(assumed: number): Promise<{ months: string[]; values: number[]; measuredTo: string; filledTo: string | null }> {
+  const [cpi, annual] = await Promise.all([
+    fredSeries("IDNCPIALLMINMEI"),
+    fredSeries("FPCPITOTLZGIDN").catch(() => ({ months: [] as string[], values: [] as number[] })),
+  ]);
+  const yearly = new Map(annual.months.map((m, i) => [m.slice(0, 4), annual.values[i] / 100]));
+  const months = [...cpi.months];
+  const values = [...cpi.values];
+  const measuredTo = months[months.length - 1];
+  let filledTo: string | null = null;
+  const lastDone = monthOf(Date.now() / 1000 - 28 * 86400);
+  for (let m = nextMonth(measuredTo); m <= lastDone; m = nextMonth(m)) {
+    const rate = yearly.get(m.slice(0, 4));
+    if (rate !== undefined) filledTo = m;
+    values.push(values[values.length - 1] * Math.pow(1 + (rate ?? assumed), 1 / 12));
+    months.push(m);
+  }
+  return { months, values, measuredTo, filledTo };
 }
 
 export async function fredSeries(id: string): Promise<{ months: string[]; values: number[] }> {

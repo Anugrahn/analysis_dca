@@ -36,8 +36,25 @@
 | Rata-rata sejarah = harapan | Asumsi pasar ke depan (CMA). Sejarah hanya untuk bentuk naik-turunnya |
 | Setoran tetap, tanpa target/portofolio | Setoran naik per tahun, target, setoran yang dibutuhkan, dan campuran yang diseimbangkan ulang |
 | Risiko dari harga aset | Drawdown dan "di bawah setoran" dihitung dari perjalanan uang penabung |
-| CPI berhenti Apr 2025, tanpa peringatan | Inflasi berupa asumsi yang tertulis jelas (3%) |
+| CPI berhenti Apr 2025, tanpa peringatan | Proyeksi: inflasi asumsi 3%. Sejarah: CPI asli, lalu inflasi tahunan Bank Dunia, lalu 3%, dan batasnya ditulis di rapor |
 | Pajak dividen asing tidak memotong nilai | Pajak dividen AS 15% memotong return setiap bulan |
 | Biaya berbeda antarhalaman | Satu sumber biaya per instrumen (`src/lib/market/classify.ts`) |
 
 **Ide yang diadopsi ke tabel "tahun demi tahun" Cobain:** rentang 80% bergaya P10–P90, % untung per durasi, dan perbandingan langsung **sejarah vs proyeksi** per tahun. "Ambang konsistensi" dari sejarah diterjemahkan jadi momen penting di proyeksi (misalnya "peluang rugi turun di bawah 10 dari 100").
+
+## Penyelarasan (28 Okt 2026)
+
+Permintaan Uga: "semua logic dan mode disamakan dengan seandainya, kalau bisa di-enhance". Status per bagian mesin:
+
+| Bagian | seandainya | Cobain sekarang |
+|---|---|---|
+| Biaya transaksi | domestik 0,15/0,25%, global 0,15/0,15%, kripto 0,4% PP, spread 0,1% | Spread 0,1% (separuh tiap sisi) ditambahkan untuk saham, ETF, kripto. Indeks (lewat reksa dana) & emas tidak. Saham Indonesia jadi persis 0,20/0,30%. AS & kripto tetap lebih tinggi karena memuat selisih kurs dan PPh final 0,21% (PMK 50/2025) |
+| Dividen | diputar (adjusted) atau tunai menganggur 0% | Sama, plus pajak per mode: Indonesia 0% diputar (UU HPP) / 10% tunai, AS 15%. Dividen per bulan = ln(adjusted/close) dari Yahoo, ikut di-bootstrap di bulan yang sama dengan harganya; dibatasi 0–20% sebulan supaya koreksi data tidak terbaca sebagai dividen |
+| XIRR & riil | bisection bulanan; riil = (1+XIRR)/(1+inflasi) − 1 | Sama. Inflasi sejarah dari CPI selama jendela |
+| Metrik risiko | dari harga aset; rf 6% | Rumus sama (`src/lib/sim/risk.ts`), tapi dari return bulanan tabungan setelah biaya & pajak dividen. rf sejarah 6%, ke depan asumsi deposito. Rasio null kalau penyebutnya 0 |
+| Skor stabilitas | 35/25/20/20, batas 30 poin & −60%, inflasi hilang = 0 | Sama, kecuali inflasi hilang: bobotnya dibagi ke komponen lain. Dihitung juga untuk proyeksi, jadi sejarah vs ke depan bisa dibandingkan |
+| Mode tanggal mulai | 10 tahun berbeda / satu tanggal / semua bulan | Sama, di bagian "Kalau dulu mulai…" |
+| Durasi | 3/5/7/10 + bebas | 1/3/5/7/10/20 + bebas 1–30 |
+| Ambang konsistensi | durasi terpendek yang selalu untung dari semua titik mulai | Sama (dicek sampai durasi pilihan pengguna), jadi momen penting di tabel tahunan |
+
+**Kalibrasi setelah perubahan** (`npm run calibrate`, varian produksi "prior + ketidakpastian rata2"): IHSG 95%/66%, S&P 500 98%/36%, BBCA 93%/63%, TLKM 97%/48%, Emas 83%/62%. Identik dengan sebelum perubahan, jadi tabel di `/metodologi` tidak berubah.

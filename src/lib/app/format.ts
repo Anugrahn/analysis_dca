@@ -4,6 +4,20 @@
 const MINUS = "−";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
+export const MONTH_NAMES = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+/** Angka desimal gaya Indonesia dengan tanda minus tipografis: −0,42 */
+export function decimal(x: number, digits = 2): string {
+  return `${x < 0 ? MINUS : ""}${Math.abs(x).toFixed(digits).replace(".", ",")}`;
+}
+
+/** "YYYY-MM" + n bulan */
+export function addMonths(ym: string, n: number): string {
+  const [y, m] = ym.split("-").map(Number);
+  const t = y * 12 + (m - 1) + n;
+  return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`;
+}
+
 function dec(v: number, digits: number) {
   return v.toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: digits });
 }

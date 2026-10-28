@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { getJson } from "@/lib/app/client";
 import { formatAmountInput, formatTyping, parseAmount, rupiahWords } from "@/lib/app/format";
-import type { Alternatives, Mode, Projection, SearchItem } from "@/lib/app/types";
+import type { Alternatives, DividendMode, Mode, Projection, SearchItem } from "@/lib/app/types";
 import { AlternativesView } from "./alternatives-view";
 import { Icon3D } from "./icon3d";
 import { InstrumentSearch } from "./instrument-search";
@@ -16,10 +16,11 @@ export interface PlannerInitial {
   mode: Mode;
   stepUp: number;
   goal: number | null;
+  dividends: DividendMode;
 }
 
 const AMOUNT_PRESETS = [300_000, 500_000, 1_000_000, 2_000_000, 5_000_000];
-const YEAR_PRESETS = [1, 3, 5, 10, 20];
+const YEAR_PRESETS = [1, 3, 5, 7, 10, 20];
 const MIN_AMOUNT = 10_000;
 const MAX_AMOUNT = 10_000_000_000;
 const MAX_STEPUP = 20;
@@ -29,7 +30,13 @@ interface Plan {
   years: number;
   mode: Mode;
   stepUp: number;
+  dividends: DividendMode;
 }
+
+const DIVIDEND_OPTIONS: { value: DividendMode; label: string }[] = [
+  { value: "putar", label: "Beli lagi" },
+  { value: "tunai", label: "Ambil tunai" },
+];
 
 type Load<T> = { state: "idle" | "loading" | "done" | "error"; data: T | null; error?: string };
 
@@ -44,8 +51,9 @@ export function Planner({ initial }: { initial: PlannerInitial }) {
   const [mode, setMode] = useState<Mode>(initial.mode);
   const [stepUpText, setStepUpText] = useState(String(Math.round(initial.stepUp * 1000) / 10).replace(".", ","));
   const [goalText, setGoalText] = useState(initial.goal ? formatAmountInput(initial.goal) : "");
+  const [dividends, setDividends] = useState<DividendMode>(initial.dividends);
   const [plan, setPlan] = useState<Plan | null>(
-    initial.symbol ? { symbol: initial.symbol, years: initial.years, mode: initial.mode, stepUp: initial.stepUp } : null,
+    initial.symbol ? { symbol: initial.symbol, years: initial.years, mode: initial.mode, stepUp: initial.stepUp, dividends: initial.dividends } : null,
   );
   const [errors, setErrors] = useState<{ instrument?: string; amount?: string; years?: string; goal?: string; stepUp?: string }>({});
   const [proj, setProj] = useState<Load<Projection>>({ state: initial.symbol ? "loading" : "idle", data: null });
@@ -67,6 +75,7 @@ export function Planner({ initial }: { initial: PlannerInitial }) {
     if (!plan) return;
     const ctrl = new AbortController();
     const qs = new URLSearchParams({ symbol: plan.symbol, years: String(plan.years), mode: plan.mode, stepUp: String(plan.stepUp) });
+    if (plan.dividends === "tunai") qs.set("dividen", "tunai");
     (async () => {
       try {
         const data = await getJson<Projection>(`/api/projection?${qs}`, ctrl.signal);
@@ -100,6 +109,7 @@ export function Planner({ initial }: { initial: PlannerInitial }) {
     const qs = new URLSearchParams({ s: plan.symbol, m: String(amountOk ? amount : initial.amount), y: String(plan.years) });
     if (plan.mode !== "dasar") qs.set("mode", plan.mode);
     if (plan.stepUp) qs.set("naik", String(plan.stepUp));
+    if (plan.dividends === "tunai") qs.set("dividen", "tunai");
     if (goal) qs.set("target", String(goal));
     window.history.replaceState(null, "", `?${qs}`);
   }, [plan, amount, amountOk, goal, initial.amount]);
@@ -143,7 +153,7 @@ export function Planner({ initial }: { initial: PlannerInitial }) {
     if (errs.amount) return amountRef.current?.focus();
     if (Object.keys(errs).length) return;
     focusAfterLoad.current = true;
-    go({ symbol: selected!.symbol, years, mode, stepUp });
+    go({ symbol: selected!.symbol, years, mode, stepUp, dividends });
   }
 
   function pick(item: SearchItem) {
@@ -161,6 +171,11 @@ export function Planner({ initial }: { initial: PlannerInitial }) {
       setYearsText("");
       update({ years: y });
     }
+  }
+
+  function chooseDividends(d: DividendMode) {
+    setDividends(d);
+    update({ dividends: d });
   }
 
   function nudgeStepUp(delta: number) {
@@ -345,6 +360,23 @@ export function Planner({ initial }: { initial: PlannerInitial }) {
               </div>
               <ErrorText id={`${uid}-err-goal`} text={errors.goal} />
             </div>
+            <fieldset className="sm:col-span-2" aria-describedby={`${uid}-div-hint`}>
+              <legend className="font-bold text-ink">
+                Dividennya mau diapain? <span className="font-normal text-muted">(opsional)</span>
+              </legend>
+              <p id={`${uid}-div-hint`} className="text-sm text-muted">
+                Dividen = bagi untung dari perusahaan. Kalau diambil tunai, uangnya kita anggap didiamkan (nggak berbunga), dan dividen saham Indonesia kena
+                pajak 10%.
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {DIVIDEND_OPTIONS.map((d) => (
+                  <label key={d.value} className={`${chip(dividends === d.value)} cursor-pointer has-[:focus-visible]:outline has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-coral-ink`}>
+                    <input type="radio" name={`${uid}-div`} className="sr-only" checked={dividends === d.value} onChange={() => chooseDividends(d.value)} />
+                    {d.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
           </div>
 
           <button type="submit" className="mt-8 flex min-h-16 w-full items-center justify-center gap-3 rounded-full bg-coral px-6 text-[1.2rem] font-extrabold text-on-coral hover:brightness-105 active:scale-[0.99] sm:w-auto sm:px-10">

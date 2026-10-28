@@ -35,8 +35,8 @@ export function YearTable({ data, amount, goal }: Props) {
   const e = data.explain;
 
   const { rows, milestones } = useMemo(
-    () => analyzeYears(data.yearly, { amount, stepUp: data.plan.stepUp, inflation: e.inflation, goal }),
-    [data.yearly, amount, data.plan.stepUp, e.inflation, goal],
+    () => analyzeYears(data.yearly, { amount, stepUp: data.plan.stepUp, inflation: e.inflation, goal, consistentFrom: data.consistentFrom }),
+    [data.yearly, amount, data.plan.stepUp, e.inflation, goal, data.consistentFrom],
   );
   const past = useMemo(() => new Map(data.pastYearly.map((p) => [p.month, p])), [data.pastYearly]);
   const startYear = new Date().getFullYear();
@@ -71,6 +71,11 @@ export function YearTable({ data, amount, goal }: Props) {
   if (last && pastLast) {
     insights.push(
       `Di masa lalu, ${n100(pastLast.pctProfit)} dari 100 orang yang nabung ${last.year} tahun di sini berakhir untung. Hitungan ke depan kita lebih hati-hati: ${100 - n100(last.probLoss)} dari 100, karena sejarah yang bagus belum tentu terulang.`,
+    );
+  }
+  if (data.pastYearly.length >= 2 && !data.consistentFrom) {
+    insights.push(
+      `Di sejarah, belum ada lama nabung (1–${data.pastYearly.length} tahun) yang selalu untung dari semua bulan mulai. Selalu ada yang apes masuk di waktu yang salah.`,
     );
   }
   insights.push("Jarak apes ke hoki melebar tiap tahun. Itu normal: makin jauh ke depan, makin banyak yang bisa terjadi.");

@@ -2,6 +2,16 @@
 
 Nama aplikasi: **Cobain** (sejak 23 Okt 2026; sebelumnya "Coba-coba", dan "Prakira" di v1).
 
+## v4 (28 Okt 2026): disamakan dengan mesin seandainya
+
+Permintaan: semua logika & mode disamakan dengan seandainya, lalu ditingkatkan kalau bisa. Rinciannya di [benchmark seandainya](../riset/03-benchmark-seandainya.md#penyelarasan-28-okt-2026).
+
+- **Form:** chip 7 tahun (durasi seandainya 3/5/7/10), dan pilihan opsional "Dividennya mau diapain?" (beli lagi / ambil tunai). Ikut tersimpan di URL (`dividen=tunai`).
+- **Rapor risiko:** skor stabilitas masa lalu vs ke depan (meter + pita 75/55/35), lalu tabel 15 metrik dalam 3 kelompok ("Seberapa sering berhasil?", "Seberapa sakit jatuhnya?", "Sepadan sama deg-degannya?"). Nama metrik dalam bahasa sehari-hari; istilah teknis (Sharpe, VaR, dst.) hanya di `/metodologi#rapor`. Tombol "Jelasin tiap baris" (`aria-pressed`) membuka penjelasan per baris. Di 390 px kedua kolom muat tanpa digeser.
+- **Kalau dulu mulai…:** tiga cara lihat seperti seandainya: "10 tahun berbeda" (bulan kalender sama), "Satu tanggal" (select per tahun), "Semua bulan" (peta panas tahun × bulan; tiap kotak tombol berlabel lengkap, warna bukan satu-satunya penanda karena angkanya tertulis). Kontrol tersegmen 3 kolom di mobile.
+- **Ambang konsistensi** sejarah muncul sebagai momen penting di tabel "Tahun demi tahun".
+- **Uji 28 Okt 2026:** axe-core bersih di desktop, 390 px, dan mode gelap; tanpa geser horizontal halaman.
+
 ## v3 (28 Okt 2026): tabel "Tahun demi tahun"
 
 Permintaan: analisis lebih dalam untuk periode beberapa tahun ke depan, dengan UI/UX sesuai standar. Rinciannya ada di [riset 04](../riset/04-uiux-tabel-proyeksi.md) dan [benchmark seandainya](../riset/03-benchmark-seandainya.md).

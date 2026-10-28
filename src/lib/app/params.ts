@@ -1,14 +1,17 @@
 import type { Mode } from "../sim/assumptions.ts";
+import type { DividendMode } from "../sim/dca.ts";
 
 const SYMBOL = /^[A-Za-z0-9^][A-Za-z0-9.^=\-]{0,23}$/;
-const ALLOWED = new Set(["symbol", "years", "mode", "stepUp"]);
+const ALLOWED = new Set(["symbol", "years", "mode", "stepUp", "dividen"]);
 const MODES: Mode[] = ["dasar", "konservatif", "historis"];
+const DIVIDENDS: DividendMode[] = ["putar", "tunai"];
 
 export interface PlanParams {
   symbol: string;
   years: number;
   mode: Mode;
   stepUp: number;
+  dividends: DividendMode;
 }
 
 /** Validasi query string; mengembalikan pesan yang bisa ditampilkan ke pengguna bila salah. */
@@ -25,5 +28,7 @@ export function parsePlan(sp: URLSearchParams): PlanParams | { error: string } {
   if (!(stepUp >= 0 && stepUp <= 0.2)) return { error: "Kenaikan setoran maksimal 20% setahun." };
   // Kelipatan 0,1% saja (sama dengan yang bisa diisi di form), supaya variasi URL terbatas.
   if (Math.abs(stepUp * 1000 - Math.round(stepUp * 1000)) > 1e-9) return { error: "Kenaikan setoran pakai kelipatan 0,1% ya." };
-  return { symbol, years, mode, stepUp };
+  const dividends = (sp.get("dividen") ?? "putar") as DividendMode;
+  if (!DIVIDENDS.includes(dividends)) return { error: "Pilihan dividennya nggak dikenal." };
+  return { symbol, years, mode, stepUp, dividends };
 }

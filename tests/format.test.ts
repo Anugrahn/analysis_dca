@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseAmount, percent, rupiahShort, rupiahWords } from "../src/lib/app/format.ts";
+import { addMonths, decimal, parseAmount, percent, rupiahShort, rupiahWords } from "../src/lib/app/format.ts";
 import { compare } from "../src/lib/app/projection.ts";
 
 test("parseAmount menerima cara orang Indonesia mengetik nominal", () => {
@@ -77,4 +77,11 @@ test("alias pencarian cocok per kata, bukan awalan sembarang", () => {
   assert.ok(!matches("global", "global payments"));
   assert.ok(!matches("ori", "oriental"));
   assert.ok(!matches("deposito", "deposits"));
+});
+
+test("addMonths & decimal", () => {
+  assert.equal(addMonths("2016-10", 119), "2026-09");
+  assert.equal(addMonths("2020-01", -1), "2019-12");
+  assert.equal(decimal(-0.4249), "−0,42");
+  assert.equal(decimal(1.5, 1), "1,5");
 });

@@ -65,3 +65,11 @@ test("milestones: tidak ada klaim kalau kondisinya tidak pernah terjadi", () => 
   assert.equal(a.milestones.find((m) => m.kind === "bunga-berbunga"), undefined);
   assert.ok(a.rows.every((r) => r.probGoal === null));
 });
+
+test("ambang konsistensi sejarah jadi momen penting di tahunnya", () => {
+  const input: YearInput[] = [1, 2, 3].map((y) => ({ month: y * 12, contributed: y * 12, probLoss: 0.3 / y, quantiles: Array.from({ length: 101 }, (_, i) => y * 12 * (0.8 + i / 200)) }));
+  const a = analyzeYears(input, { amount: 1, stepUp: 0, inflation: 0, goal: null, consistentFrom: 2 });
+  const m = a.milestones.find((x) => x.kind === "sejarah-selalu-untung");
+  assert.equal(m?.year, 2);
+  assert.ok(analyzeYears(input, { amount: 1, stepUp: 0, inflation: 0, goal: null, consistentFrom: 7 }).milestones.every((x) => x.kind !== "sejarah-selalu-untung"));
+});

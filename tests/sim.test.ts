@@ -9,7 +9,7 @@ import { recommend } from "../src/lib/sim/profile.ts";
 import { rng } from "../src/lib/sim/stats.ts";
 
 const free = (id: string, currency: "IDR" | "USD" = "IDR"): Instrument => ({
-  id, name: id, cls: "saham-id", source: { kind: "yahoo", symbol: id, currency }, buyFee: 0, sellFee: 0, divDrag: 0, note: "",
+  id, name: id, cls: "saham-id", source: { kind: "yahoo", symbol: id, currency }, buyFee: 0, sellFee: 0, annualFee: 0, divTax: { putar: 0, tunai: 0 }, note: "",
 });
 const close = (a: number, b: number, tol: number) => assert.ok(Math.abs(a - b) <= tol, `${a} ≉ ${b} (±${tol})`);
 
@@ -167,4 +167,43 @@ test("yearly: distribusi per akhir tahun konsisten dengan hasil akhir", () => {
   for (const y of s.yearly) for (let i = 1; i < 101; i++) assert.ok(y.quantiles[i] >= y.quantiles[i - 1]);
   // Ketidakpastian melebar seiring waktu.
   assert.ok(s.yearly[2].quantiles[95] - s.yearly[2].quantiles[5] > s.yearly[0].quantiles[95] - s.yearly[0].quantiles[5]);
+});
+
+test("dividen tunai: keluar dari portofolio, kena pajak, menganggur 0%", () => {
+  const ins: Instrument[] = [{ ...free("a"), divTax: { putar: 0, tunai: 0.1 } }];
+  const plan = { monthly: 100, months: 24, weights: { a: 1 } };
+  // return total 1%/bln, separuhnya dividen
+  const putar = runDca(plan, ins, () => 0.01, () => 0.005);
+  const tunai = runDca({ ...plan, dividends: "tunai" as const }, ins, () => 0.01, () => 0.005);
+  close(putar.xirr, Math.pow(1.01, 12) - 1, 1e-6);
+  assert.equal(putar.cashPath, null);
+  assert.ok(tunai.cashPath && tunai.cashPath[23] > 0);
+  assert.ok(tunai.finalValue < putar.finalValue, "dividen yang menganggur + pajak → hasil lebih kecil");
+  // harga diam, dividen 0,5%/bln tanpa pajak: unit tetap = setoran, dividen menumpuk tanpa berbunga
+  // → 2.400 setoran + 0,5% × (100 + 200 + … + 2.400) = 2.400 + 150
+  const flat = runDca({ ...plan, dividends: "tunai" as const }, [free("a")], () => 0.005, () => 0.005);
+  close(flat.finalValue, 2550, 1e-6);
+  close(flat.cashPath![23], 150, 1e-6);
+});
+
+test("pajak dividen saat diputar memotong return sebesar pajak × dividen", () => {
+  const ins: Instrument[] = [{ ...free("a"), divTax: { putar: 0.15, tunai: 0.15 } }];
+  const r = runDca({ monthly: 100, months: 60, weights: { a: 1 } }, ins, () => 0.01, () => 0.002);
+  close(r.xirr, Math.pow(1 + 0.01 - 0.15 * 0.002, 12) - 1, 1e-6);
+  assert.equal(r.returns.length, 60);
+  close(r.returns[10], 0.01 - 0.15 * 0.002, 1e-12);
+});
+
+test("backtest: XIRR riil & % kalahkan inflasi pakai CPI selama periode", () => {
+  const n = 60;
+  const panel: Panel = {
+    months: Array.from({ length: n }, (_, i) => `20${String(10 + Math.floor(i / 12)).padStart(2, "0")}-${String((i % 12) + 1).padStart(2, "0")}`),
+    comps: { a: Array(n).fill(Math.log(1.01)), cpi: Array(n).fill(Math.log(1.03) / 12) },
+  };
+  const bt = backtest(panel, { monthly: 1, months: 24, weights: { a: 1 } }, [free("a")]);
+  assert.equal(bt.runs.length, n - 24 + 1);
+  close(bt.runs[0].inflation!, 0.03, 1e-9);
+  close(bt.runs[0].realXirr!, Math.pow(1.01, 12) / 1.03 - 1, 1e-6);
+  assert.equal(bt.pctBeatInflation, 1);
+  assert.ok(bt.stability >= 90, `stabil: ${bt.stability}`);
 });

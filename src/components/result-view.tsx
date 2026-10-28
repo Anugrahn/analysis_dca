@@ -7,6 +7,8 @@ import type { Mode, Projection } from "@/lib/app/types";
 import { FanChart } from "./fan-chart";
 import { FuturesLab } from "./futures-lab";
 import { Icon3D, type Icon3DName } from "./icon3d";
+import { RiskReport } from "./risk-report";
+import { TimeMachine } from "./time-machine";
 import { YearTable } from "./year-table";
 
 export const MODE_OPTIONS: { value: Mode; label: string; hint: string }[] = [
@@ -55,7 +57,8 @@ export function ResultView({ data, amount, onAmount, goal, mode, onMode, busy, h
       <div className="flex flex-wrap items-end justify-between gap-4">
         <p className="text-ink-2">
           <strong className="text-ink">{data.instrument.name}</strong>, {rupiahWords(amount)} sebulan, {years} tahun
-          {data.plan.stepUp ? `, naik ${percent(data.plan.stepUp, 1)} tiap tahun` : ""}.
+          {data.plan.stepUp ? `, naik ${percent(data.plan.stepUp, 1)} tiap tahun` : ""}
+          {data.plan.dividends === "tunai" ? ", dividen diambil tunai" : ""}.
         </p>
         <fieldset>
           <legend className="sr-only">Versi hitungan</legend>
@@ -90,6 +93,14 @@ export function ResultView({ data, amount, onAmount, goal, mode, onMode, busy, h
             {rupiahWords(Math.abs(gain))}
           </span>
         </p>
+
+        {data.dividends.cash && data.dividends.cash.p50 > 0 ? (
+          <p className="mt-2 text-sm text-on-night-2">
+            Termasuk ±{rupiahWords(data.dividends.cash.p50 * k)} dividen tunai yang kamu kumpulin dan nggak dibelikan lagi.
+          </p>
+        ) : data.plan.dividends === "tunai" ? (
+          <p className="mt-2 text-sm text-on-night-2">Ini nggak bagi dividen, jadi pilihan dividen nggak ngaruh.</p>
+        ) : null}
 
         <dl className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-[20px] bg-night-raise p-4">
@@ -210,6 +221,10 @@ export function ResultView({ data, amount, onAmount, goal, mode, onMode, busy, h
       </section>
 
       <YearTable data={data} amount={amount} goal={goal} />
+
+      <RiskReport data={data} />
+
+      <TimeMachine data={data} amount={amount} />
 
       <div className="grid gap-5 lg:grid-cols-2">
         <section aria-labelledby={`${uid}-why`} className="rounded-[var(--radius-card)] bg-surface p-6">

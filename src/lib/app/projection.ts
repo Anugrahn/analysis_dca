@@ -1,14 +1,15 @@
 // Layanan proyeksi & rekomendasi: data pasar langsung → aturan asumsi → mesin simulasi.
 import { assumptionsFor, type Mode } from "../sim/assumptions.ts";
-import { backtest } from "../sim/backtest.ts";
-import { commonWindow, componentsOf, nextMonth, panelFrom, type Panel } from "../sim/data.ts";
+import { backtest, HISTORY_RISK_FREE, type BacktestSummary } from "../sim/backtest.ts";
+import { commonWindow, componentsOf, CPI_ID, divId, nextMonth, panelFrom, type Panel } from "../sim/data.ts";
 import type { DcaPlan } from "../sim/dca.ts";
 import { fxId } from "../sim/instruments.ts";
 import { sigmaMu, simulate, type McSummary } from "../sim/montecarlo.ts";
 import { mean, quantile, std } from "../sim/stats.ts";
 import { classify, MODEL_PROFILES, type Profile } from "../market/classify.ts";
-import { fxToIdr, MarketError, monthlyHistory, peersOf, searchYahoo, type MonthlyHistory } from "../market/yahoo.ts";
-import type { Alternative, AltGroup, Alternatives, Latest, Outcome, Projection } from "./types.ts";
+import { cpiIndonesia, fxToIdr, MarketError, monthlyHistory, peersOf, searchYahoo, type MonthlyHistory } from "../market/yahoo.ts";
+import type { PlanParams } from "./params.ts";
+import type { Alternative, AltGroup, Alternatives, Latest, Outcome, Projection, Rapor } from "./types.ts";
 
 const MIN_MONTHS = 36;
 const TTL_MS = 6 * 3600 * 1000;
@@ -78,20 +79,31 @@ export function load(symbol: string): Promise<Loaded> {
   });
 }
 
-async function panelOf(items: Loaded[]): Promise<Panel> {
+type Cpi = Awaited<ReturnType<typeof cpiIndonesia>>;
+
+/** Panel harga + dividen + kurs; dengan `cpi`, juga inflasi untuk backtest (null = gagal diambil). */
+async function panelOf(items: Loaded[], cpi?: Cpi | null): Promise<Panel> {
   const series: { id: string; months: string[]; values: number[]; addYield?: number }[] = [];
   const currencies = new Set<string>();
   for (const l of items) {
     if (!l.history) continue;
+    const h = l.history;
     const addYield = l.profile.kind === "indeks" ? INDEX_YIELD[l.profile.symbol] ?? 0.02 : 0;
-    series.push({ id: l.profile.symbol, months: l.history.months, values: l.history.values, addYield });
+    series.push({ id: l.profile.symbol, months: h.months, values: h.values, addYield });
+    // adjusted ÷ close naik setiap ada dividen; indeks harga memakai perkiraan yield-nya.
+    series.push({ id: divId(l.profile.symbol), months: h.months, values: h.values.map((v, i) => v / h.closes[i]), addYield });
     if (l.profile.currency !== "IDR") currencies.add(l.profile.currency);
   }
   for (const cur of currencies) {
     const fx = await cached(`fx:${cur}`, () => fxToIdr(cur));
     series.push({ id: fxId(cur), ...fx });
   }
+  if (cpi) series.push({ id: CPI_ID, months: cpi.months, values: cpi.values });
   return panelFrom(series);
+}
+
+function cpiOf(): Promise<Cpi | null> {
+  return cached("cpi", () => cpiIndonesia(assumptionsFor("dasar").inflation)).catch(() => null);
 }
 
 function compVol(panel: Panel, c: string) {
@@ -183,12 +195,12 @@ function info(p: Profile) {
   };
 }
 
-export async function project(symbol: string, years: number, mode: Mode, stepUp: number): Promise<Projection> {
-  const l = await load(symbol);
-  const panel = await panelOf([l]);
+export async function project({ symbol, years, mode, stepUp, dividends }: PlanParams): Promise<Projection> {
+  const [l, cpi] = await Promise.all([load(symbol), cpiOf()]);
+  const panel = await panelOf([l], cpi);
   ensureHistory(l, panel);
   const ins = l.profile.instrument;
-  const plan: DcaPlan = { monthly: 1, months: years * 12, stepUpYearly: stepUp, weights: { [ins.id]: 1 } };
+  const plan: DcaPlan = { monthly: 1, months: years * 12, stepUpYearly: stepUp, weights: { [ins.id]: 1 }, dividends };
   const { targets, uncertainty, volBlend } = assumptionsOf([l], panel, mode);
   const sim = simulate({
     panel, plan, mode, instruments: [ins], targets, uncertainty, volBlend, paths: 4000, seed: 7, samples: 100, storySource: ins.id,
@@ -196,9 +208,11 @@ export async function project(symbol: string, years: number, mode: Mode, stepUp:
   const A = assumptionsFor(mode);
 
   let past: Projection["explain"]["past"] = null;
+  let main: BacktestSummary | null = null;
   if (l.history) {
     const bt = backtest(panel, plan, [ins]);
     if (bt.runs.length >= 3) {
+      main = bt;
       const xs = bt.runs.map((r) => r.xirr);
       past = { runs: xs.length, median: bt.xirr.p50, worst: Math.min(...xs), best: Math.max(...xs), pctProfit: bt.pctProfit };
     }
@@ -226,6 +240,9 @@ export async function project(symbol: string, years: number, mode: Mode, stepUp:
       });
     }
   }
+  // Ambang konsistensi: dari durasi ini ke atas, semua titik mulai berakhir untung.
+  let consistentFrom: number | null = null;
+  for (let k = pastYearly.length - 1; k >= 0 && pastYearly[k].pctProfit === 1; k--) consistentFrom = pastYearly[k].month / 12;
 
   // Ekspektasi yang benar-benar dipakai (untuk dijelaskan): lokal + kurs.
   let expectedLocal: number;
@@ -245,8 +262,34 @@ export async function project(symbol: string, years: number, mode: Mode, stepUp:
   const years_ = ownMonths.length / 12;
   return {
     instrument: info(l.profile),
-    plan: { years, months: years * 12, mode, stepUp },
+    plan: { years, months: years * 12, mode, stepUp, dividends },
     outcome: outcomeOf(sim),
+    rapor: {
+      past: main ? raporOfPast(main) : null,
+      future: {
+        n: sim.paths,
+        pctProfit: 1 - sim.probLoss,
+        pctBeatInflation: sim.probBeatInflation,
+        growth: sim.xirr.p50,
+        realGrowth: sim.realXirr.p50,
+        iqrGrowth: sim.xirr.p75 - sim.xirr.p25,
+        worstVsContrib: sim.worstVsContrib.p50,
+        risk: sim.risk,
+        riskFree: A.model.deposito.rate,
+        score: sim.stability,
+      },
+    },
+    pastRuns: (main?.runs ?? []).map((r) => ({
+      start: r.start,
+      final: round4(r.finalValue),
+      xirr: round4(r.xirr),
+      real: r.realXirr === null ? null : round4(r.realXirr),
+      mdd: round4(r.maxDrawdown),
+      worst: round4(r.worstVsContrib),
+    })),
+    pastContributed: sim.contributed,
+    consistentFrom,
+    dividends: { yield: !l.history ? 0 : l.profile.kind === "indeks" ? INDEX_YIELD[l.profile.symbol] ?? 0.02 : l.history.dividendYield, cash: sim.cash },
     fan: sim.fan,
     samples: (sim.samples ?? []).map((x) => ({ final: round4(x.final), path: x.path.map(round4), src: x.src })),
     yearly: sim.yearly.map((y) => ({ month: y.month, contributed: round4(y.contributed), probLoss: y.probLoss, quantiles: y.quantiles.map(round4) })),
@@ -275,10 +318,28 @@ export async function project(symbol: string, years: number, mode: Mode, stepUp:
       warnings: l.profile.warnings,
       inflation: A.inflation,
       depositRate: A.model.deposito.rate,
+      cpi: cpi ? { measuredTo: cpi.measuredTo, filledTo: cpi.filledTo } : null,
       past,
     },
     latest: latestOf(l),
     generatedAt: new Date().toISOString(),
+  };
+}
+
+function raporOfPast(bt: BacktestSummary): Rapor {
+  const reals = bt.runs.map((r) => r.realXirr).filter((x): x is number => x !== null);
+  const worst = Float64Array.from(bt.runs, (r) => r.worstVsContrib).sort();
+  return {
+    n: bt.runs.length,
+    pctProfit: bt.pctProfit,
+    pctBeatInflation: bt.pctBeatInflation,
+    growth: bt.xirr.p50,
+    realGrowth: reals.length ? quantile(Float64Array.from(reals).sort(), 0.5) : null,
+    iqrGrowth: bt.xirr.p75 - bt.xirr.p25,
+    worstVsContrib: quantile(worst, 0.5),
+    risk: bt.risk,
+    riskFree: HISTORY_RISK_FREE,
+    score: bt.stability,
   };
 }
 
@@ -343,7 +404,7 @@ export function compare(alt: Outcome, main: Outcome): string {
   return `${medText}${joiner}${lossText}.`;
 }
 
-export async function alternatives(symbol: string, years: number, mode: Mode, stepUp: number): Promise<Alternatives> {
+export async function alternatives({ symbol, years, mode, stepUp, dividends }: PlanParams): Promise<Alternatives> {
   const main = await load(symbol);
   const p = main.profile;
   const candidates: Candidate[] = [];
@@ -413,7 +474,7 @@ export async function alternatives(symbol: string, years: number, mode: Mode, st
     const panel = await panelOf(loaded);
     loaded.forEach((l) => ensureHistory(l, panel));
     const { targets, uncertainty, volBlend } = assumptionsOf(loaded, panel, mode);
-    const plan: DcaPlan = { monthly: 1, months, stepUpYearly: stepUp, weights, rebalanceYearly: ids.length > 1 };
+    const plan: DcaPlan = { monthly: 1, months, stepUpYearly: stepUp, weights, rebalanceYearly: ids.length > 1, dividends };
     const sim = simulate({ panel, plan, mode, instruments: loaded.map((l) => l.profile.instrument), targets, uncertainty, volBlend, paths: 1500, seed: 11 });
     return { outcome: outcomeOf(sim), loaded };
   }

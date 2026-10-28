@@ -39,7 +39,15 @@ export interface YearRow {
   growth: number;
 }
 
-export type MilestoneKind = "rugi-separuh" | "rugi-mengecil" | "apes-pun-untung" | "bunga-berbunga" | "dua-kali" | "target-mungkin" | "target-yakin";
+export type MilestoneKind =
+  | "rugi-separuh"
+  | "rugi-mengecil"
+  | "apes-pun-untung"
+  | "bunga-berbunga"
+  | "dua-kali"
+  | "target-mungkin"
+  | "target-yakin"
+  | "sejarah-selalu-untung";
 
 export interface Milestone {
   year: number;
@@ -58,6 +66,8 @@ interface Options {
   stepUp: number;
   inflation: number;
   goal: number | null;
+  /** ambang konsistensi sejarah (tahun), lihat Projection.consistentFrom */
+  consistentFrom?: number | null;
 }
 
 export function analyzeYears(input: YearInput[], o: Options): YearlyAnalysis {
@@ -92,7 +102,17 @@ export function analyzeYears(input: YearInput[], o: Options): YearlyAnalysis {
     rows.push(row);
     prev = row;
   }
-  return { rows, milestones: findMilestones(rows) };
+  const milestones = findMilestones(rows);
+  const c = o.consistentFrom;
+  if (c && rows.some((r) => r.year === c)) {
+    milestones.push({
+      year: c,
+      kind: "sejarah-selalu-untung",
+      text: `Di masa lalu, nabung ${c} tahun atau lebih di sini selalu berakhir untung, mulai bulan apa pun. Ke depan belum tentu sama.`,
+    });
+    milestones.sort((a, b) => a.year - b.year);
+  }
+  return { rows, milestones };
 }
 
 /** Momen penting, masing-masing hanya disebut sekali (tahun pertama terjadinya). */
